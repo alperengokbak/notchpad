@@ -4,6 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 xcodegen generate --quiet
+mkdir -p build
 IDENTITY=$(security find-identity -v -p codesigning | awk '/"Apple Development/{print $2; exit}')
 IDENTITY=${IDENTITY:--}
 xcodebuild -project Notchpad.xcodeproj -scheme Notchpad -configuration "${CONFIG:-Debug}" \
