@@ -12,6 +12,8 @@ final class AppModel: ObservableObject {
     @Published var temperature: Int?
 
     private let batteryReader = BatteryReader()
+    private let temperatureReader = TemperatureReader()
+    private var openTimers: [Timer] = []
 
     init() {
         battery = batteryReader.current()
@@ -22,8 +24,26 @@ final class AppModel: ObservableObject {
     }
 
     /// Called by the window controller right after the panel opens.
-    func panelDidOpen() {}
+    func panelDidOpen() {
+        refreshTemperature()
+        every(2) { $0.refreshTemperature() }
+    }
 
-    /// Called by the window controller right after the panel closes.
-    func panelDidClose() {}
+    /// Called by the window controller right after the panel closes. Nothing polls while closed.
+    func panelDidClose() {
+        openTimers.forEach { $0.invalidate() }
+        openTimers.removeAll()
+    }
+
+    /// Runs `action` every `seconds` until the panel closes.
+    private func every(_ seconds: TimeInterval, _ action: @escaping @MainActor (AppModel) -> Void) {
+        let timer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { if let self { action(self) } }
+        }
+        openTimers.append(timer)
+    }
+
+    private func refreshTemperature() {
+        temperature = ChipTemperature.average(temperatureReader.readAll())
+    }
 }
