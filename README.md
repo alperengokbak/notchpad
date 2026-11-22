@@ -4,6 +4,10 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 ![Notchpad open under the notch](docs/screenshot.png)
 
+**Watch the 20-second video:**
+
+[![Notchpad launch video, click to play](docs/video-poster.jpg)](docs/notchpad-launch.mp4)
+
 ## What's in the panel
 
 - **Music:** the current Apple Music track with its cover, a progress bar, and previous, play/pause and next. Notchpad never starts Music by itself. If Music is closed, there's an "Open Music" button.
