@@ -39,5 +39,7 @@ struct NotchRootView: View {
     // Replaced by the feature views in later tasks.
     private var leftColumn: some View { Color.clear }
     private var middleColumn: some View { Color.clear }
-    private var rightColumn: some View { Color.clear }
+    private var rightColumn: some View {
+        StatsView(battery: model.battery, temperature: model.temperature)
+    }
 }
