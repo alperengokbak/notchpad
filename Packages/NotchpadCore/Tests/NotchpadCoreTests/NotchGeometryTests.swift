@@ -48,3 +48,10 @@ private let notch = CGRect(x: 764, y: 1085, width: 200, height: 32)
     #expect(withWing.minX == 684)
     #expect(withWing.maxX == NotchGeometry.hotZone(notch: notch).maxX)
 }
+
+@Test func wingWidthGrowsPerSegment() {
+    #expect(NotchGeometry.wingWidth(focus: false, mic: false) == 0)
+    #expect(NotchGeometry.wingWidth(focus: true, mic: false) == 70)
+    #expect(NotchGeometry.wingWidth(focus: false, mic: true) == 70)
+    #expect(NotchGeometry.wingWidth(focus: true, mic: true) == 140)
+}

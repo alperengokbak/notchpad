@@ -8,7 +8,7 @@ struct NotchRootView: View {
 
     private var shapeSize: CGSize { model.isOpen ? NotchGeometry.openSize : model.notchSize }
     /// Width of the countdown extension: only while closed with a timer running or paused.
-    private var wingWidth: CGFloat { !model.isOpen && model.focus.isActive ? 70 : 0 }
+    private var wingWidth: CGFloat { model.isOpen ? 0 : model.stripWidth }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -17,8 +17,15 @@ struct NotchRootView: View {
                 .frame(width: shapeSize.width + wingWidth, height: shapeSize.height)
                 .overlay(alignment: .topLeading) {
                     if wingWidth > 0 {
-                        FocusWing(timer: model.focus, now: model.clock)
-                            .frame(width: wingWidth, height: model.notchSize.height)
+                        HStack(spacing: 0) {
+                            if model.focus.isActive {
+                                FocusWing(timer: model.focus, now: model.clock).frame(width: 70)
+                            }
+                            if let elapsed = model.mic.elapsed(now: model.clock) {
+                                MicWing(elapsed: elapsed).frame(width: 70)
+                            }
+                        }
+                        .frame(width: wingWidth, height: model.notchSize.height, alignment: .leading)
                     }
                 }
                 .offset(x: -wingWidth / 2)

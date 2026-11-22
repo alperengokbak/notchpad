@@ -25,6 +25,10 @@ final class AppModel: ObservableObject {
         }
     }
     @Published var focus = FocusTimer()
+    @Published var mic = MicActivity()
+    private let micMonitor = MicMonitor()
+    /// Width of the closed-notch strip (0 when nothing to show).
+    var stripWidth: CGFloat { NotchGeometry.wingWidth(focus: focus.isActive, mic: mic.isActive) }
     private(set) var lastFocusMinutes = 25
     private var focusTicker: Timer?
     private var askedNotificationPermission = false
@@ -82,6 +86,14 @@ final class AppModel: ObservableObject {
         if let tab = DebugTools.argument(after: "--tab").flatMap(PanelTab.init(rawValue:)) { selectedTab = tab }
         if CommandLine.arguments.contains("--focus-demo") { startFocus(.focus, minutes: 25) }
         if Self.isDemo { loadDemo() }
+        micMonitor.onChange = { [weak self] running in
+            guard let self, !CommandLine.arguments.contains("--mic-demo") else { return }
+            self.mic.update(isRunning: running, now: Date())
+            DebugTools.log("mic: \(running)")
+            self.updateFocusTicker()
+        }
+        micMonitor.start()
+        if CommandLine.arguments.contains("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
         if let s = DebugTools.argument(after: "--focus-seconds").flatMap(Double.init) {
             focus.start(.focus, seconds: s, now: Date())
             askForNotificationsOnce()
@@ -322,13 +334,16 @@ final class AppModel: ObservableObject {
         updateFocusTicker()
     }
 
-    /// The only timer that runs while the panel is closed, and only while a countdown runs.
+    /// The only timer that runs while the panel is closed: only while a countdown runs or the mic is in use.
+    /// Added in .common mode so it keeps ticking while a menu is open or a drag is running.
     private func updateFocusTicker() {
-        let running: Bool = { if case .running = focus.phase { return true }; return false }()
+        let running: Bool = { if case .running = focus.phase { return true }; return mic.isActive }()
         if running, focusTicker == nil {
-            focusTicker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
                 MainActor.assumeIsolated { self?.focusTick() }
             }
+            RunLoop.main.add(timer, forMode: .common)
+            focusTicker = timer
         } else if !running {
             focusTicker?.invalidate()
             focusTicker = nil

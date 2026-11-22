@@ -39,6 +39,11 @@ public enum NotchGeometry {
         CGRect(x: notch.minX - 10, y: notch.minY - 10, width: notch.width + 20, height: notch.height + 10)
     }
 
+    /// Width of the closed-notch strip: 70 pt for each thing it shows (focus timer, microphone).
+    public static func wingWidth(focus: Bool, mic: Bool) -> CGFloat {
+        CGFloat((focus ? 1 : 0) + (mic ? 1 : 0)) * 70
+    }
+
     /// The black extension left of the notch that shows the focus countdown while closed.
     public static func wingRect(notch: CGRect, width: CGFloat = 70) -> CGRect {
         CGRect(x: notch.minX - width, y: notch.minY, width: width, height: notch.height)

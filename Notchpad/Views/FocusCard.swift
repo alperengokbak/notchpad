@@ -76,3 +76,16 @@ struct FocusWing: View {
         .opacity(timer.isPaused ? 0.5 : 1)
     }
 }
+
+/// Closed panel: the microphone is in use, and for how long.
+struct MicWing: View {
+    let elapsed: TimeInterval
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "mic.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(Color.red)
+            Text(FocusTimer.clock(elapsed.rounded(.down)))
+                .font(.system(size: 12, weight: .semibold).monospacedDigit())
+        }
+    }
+}
