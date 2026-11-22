@@ -38,9 +38,13 @@ final class AppModel: ObservableObject {
     @Published var tailscaleMessage: String?
     @Published var copiedDeviceID: String?
 
-    let shelf = ShelfStore(storageURL: FileManager.default
-        .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("Notchpad/shelf.json"))
+    /// `--demo`: made-up data for README screenshots, so no real reminders or files show.
+    static let isDemo = CommandLine.arguments.contains("--demo")
+
+    let shelf = ShelfStore(storageURL: AppModel.isDemo
+        ? FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo/shelf.json")
+        : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Notchpad/shelf.json"))
     /// Set by the window controller: keeps the panel open while a file is dragged out.
     var onShelfDragActive: ((Bool) -> Void)?
 
@@ -77,6 +81,7 @@ final class AppModel: ObservableObject {
         music = isMusicRunning ? .idle : .notRunning
         if let tab = DebugTools.argument(after: "--tab").flatMap(PanelTab.init(rawValue:)) { selectedTab = tab }
         if CommandLine.arguments.contains("--focus-demo") { startFocus(.focus, minutes: 25) }
+        if Self.isDemo { loadDemo() }
         if let s = DebugTools.argument(after: "--focus-seconds").flatMap(Double.init) {
             focus.start(.focus, seconds: s, now: Date())
             askForNotificationsOnce()
@@ -262,6 +267,7 @@ final class AppModel: ObservableObject {
 
     /// Asks Music for the current track, position and artwork. Never launches Music.
     private func refreshMusic() {
+        guard !Self.isDemo else { return }
         guard isMusicRunning else {
             music = .notRunning
             artwork = nil
@@ -347,6 +353,7 @@ final class AppModel: ObservableObject {
     // MARK: Reminders
 
     private func refreshReminders() {
+        guard !Self.isDemo else { return }
         remindersAccess = remindersReader.access
         guard remindersAccess == .granted else { reminders = []; return }
         Task {
@@ -377,6 +384,7 @@ final class AppModel: ObservableObject {
     }
 
     private func refreshEvents() {
+        guard !Self.isDemo else { return }
         calendarAccess = calendarReader.access
         events = DayEvents.upcoming(calendarReader.todaysEvents(now: Date()), now: Date(), calendar: .current)
     }
@@ -392,5 +400,43 @@ private struct FixtureRunner: CommandRunning {
     let path: String
     func run(_ executable: String, _ arguments: [String]) -> (exitCode: Int32, output: Data)? {
         (0, arguments.first == "status" ? ((try? Data(contentsOf: URL(fileURLWithPath: path))) ?? Data()) : Data())
+    }
+}
+
+// MARK: Demo data (README screenshots only)
+
+extension AppModel {
+    fileprivate func loadDemo() {
+        let cal = Calendar.current
+        let now = Date()
+        let today = cal.startOfDay(for: now)
+        func day(_ d: Int) -> Date { cal.date(byAdding: .day, value: d, to: today)! }
+        func item(_ title: String, _ due: Date?, list: String = "Personal", order: Int = 0) -> ReminderSummary {
+            ReminderSummary(id: title, title: title, listID: list, listTitle: list, listOrder: order, due: due, dueHasTime: false)
+        }
+        reminders = [
+            item("Renew library books", day(-1)),
+            item("Submit lab report", day(0)),
+            item("Call the dentist", day(1)),
+            item("Pay phone bill", day(3)),
+            item("Plan weekend trip", nil),
+            item("Milk", nil, list: "Shopping", order: 1),
+        ]
+        remindersAccess = .granted
+        let start = cal.date(bySettingHour: 15, minute: 0, second: 0, of: today)!
+        events = [EventSummary(id: "demo", title: "Networking lecture", start: start,
+                               end: start.addingTimeInterval(7200), isAllDay: false,
+                               red: 0.04, green: 0.52, blue: 1)]
+        calendarAccess = .granted
+        music = .notRunning
+        focus.start(.focus, seconds: 18 * 60 + 42, now: now)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let files = ["Lecture notes.pdf", "Lab screenshot.png"].map { dir.appendingPathComponent($0) }
+        for f in files where !FileManager.default.fileExists(atPath: f.path) {
+            FileManager.default.createFile(atPath: f.path, contents: Data("demo".utf8))
+        }
+        shelf.clear()
+        shelf.add(files)
     }
 }
