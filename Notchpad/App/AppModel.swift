@@ -31,7 +31,7 @@ final class AppModel: ObservableObject {
     private let calendarReader = CalendarReader()
     private let musicQueue = DispatchQueue(label: "notchpad.music")
     private let musicController = MusicController(
-        isMusicRunning: { !NSRunningApplication.runningApplications(withBundleIdentifier: AppModel.musicBundleID).isEmpty },
+        isMusicRunning: { AppModel.musicIsRunning() },
         runner: AppleScriptRunner())
     nonisolated static let musicBundleID = "com.apple.Music"
     private var artworkTitle: String?
@@ -98,8 +98,11 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private var isMusicRunning: Bool {
-        !NSRunningApplication.runningApplications(withBundleIdentifier: Self.musicBundleID).isEmpty
+    private var isMusicRunning: Bool { Self.musicIsRunning() }
+
+    nonisolated static func musicIsRunning() -> Bool {
+        MusicController.isRunning(among: NSRunningApplication.runningApplications(withBundleIdentifier: musicBundleID)
+            .map { ($0.bundleIdentifier, $0.isTerminated) })
     }
 
     private func observeMusic() {
@@ -108,10 +111,11 @@ final class AppModel: ObservableObject {
         ) { [weak self] note in
             let info = note.userInfo ?? [:]
             let track = NowPlaying.from(playerInfo: info, now: Date())
+            let shouldQuery = MusicController.shouldQuery(afterPlayerInfo: info)
             MainActor.assumeIsolated {
                 guard let self else { return }
                 if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
-                if self.isOpen { self.refreshMusic() }
+                if self.isOpen && shouldQuery { self.refreshMusic() }
             }
         }
         let ws = NSWorkspace.shared.notificationCenter
@@ -146,6 +150,13 @@ final class AppModel: ObservableObject {
             let data = needsArtwork ? controller.fetchArtwork() : nil
             DispatchQueue.main.async {
                 guard let self else { return }
+                guard self.isMusicRunning else {
+                    // Music quit while we were asking: don't show stale "running" state.
+                    self.music = .notRunning
+                    self.artwork = nil
+                    self.artworkTitle = nil
+                    return
+                }
                 self.music = track.map { .playing($0) } ?? .idle
                 if needsArtwork {
                     self.artwork = data.flatMap(NSImage.init(data:))

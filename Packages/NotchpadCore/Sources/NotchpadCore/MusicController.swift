@@ -22,6 +22,18 @@ public final class MusicController: @unchecked Sendable {
         self.runner = runner
     }
 
+    /// Music counts as running only if a not-yet-terminated process has its bundle id.
+    /// (A quitting Music is still listed for a moment; talking to it then relaunches it.)
+    public static func isRunning(among apps: [(bundleID: String?, isTerminated: Bool)]) -> Bool {
+        apps.contains { $0.bundleID == "com.apple.Music" && !$0.isTerminated }
+    }
+
+    /// After a playerInfo notification, only ask Music for more if it has a track and isn't stopped.
+    /// Music posts "Stopped" as it quits; querying then could start it again.
+    public static func shouldQuery(afterPlayerInfo info: [AnyHashable: Any]) -> Bool {
+        info["Name"] is String && (info["Player State"] as? String) != "Stopped"
+    }
+
     public func send(_ command: MusicCommand) {
         _ = tell(command.rawValue)
     }

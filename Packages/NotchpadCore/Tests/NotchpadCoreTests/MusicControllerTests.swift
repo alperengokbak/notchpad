@@ -53,3 +53,15 @@ final class SpyRunner: ScriptRunning, @unchecked Sendable {
     spy.reply = nil // Music answers nothing when stopped
     #expect(MusicController(isMusicRunning: { true }, runner: spy).fetchNowPlaying(now: Date()) == nil)
 }
+
+@Test func terminatedMusicDoesNotCountAsRunning() {
+    #expect(MusicController.isRunning(among: [("com.apple.Music", false)]))
+    #expect(!MusicController.isRunning(among: [("com.apple.Music", true)]))
+    #expect(!MusicController.isRunning(among: [("com.apple.Safari", false), (nil, false)]))
+}
+
+@Test func stoppedNotificationNeverTriggersAQuery() {
+    #expect(!MusicController.shouldQuery(afterPlayerInfo: ["Name": "Song", "Player State": "Stopped"]))
+    #expect(!MusicController.shouldQuery(afterPlayerInfo: ["Player State": "Playing"]))
+    #expect(MusicController.shouldQuery(afterPlayerInfo: ["Name": "Song", "Player State": "Paused"]))
+}
