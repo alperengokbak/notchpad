@@ -4,9 +4,9 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 ![Notchpad open under the notch](docs/screenshot.png)
 
-**Watch the 20-second video:**
+![Notchpad launch video](docs/notchpad-launch.gif)
 
-[![Notchpad launch video, click to play](docs/video-poster.jpg)](docs/notchpad-launch.mp4)
+The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
 ## What's in the panel
 
