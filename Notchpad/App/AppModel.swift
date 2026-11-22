@@ -20,6 +20,17 @@ final class AppModel: ObservableObject {
     /// Ticks every second while open, so the progress bar moves.
     @Published var clock = Date()
 
+    @Published var selectedTab: PanelTab = .home {
+        didSet {
+            DebugTools.log("tab: \(selectedTab.rawValue)")
+            if selectedTab != oldValue { updateTailscaleRefresh() }
+        }
+    }
+    @Published var tailscale: TailscaleStatus?
+    @Published var tailscaleBusy = false
+    @Published var tailscaleMessage: String?
+    @Published var copiedDeviceID: String?
+
     let shelf = ShelfStore(storageURL: FileManager.default
         .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Notchpad/shelf.json"))
@@ -35,6 +46,14 @@ final class AppModel: ObservableObject {
         runner: AppleScriptRunner())
     nonisolated static let musicBundleID = "com.apple.Music"
     private var artworkTitle: String?
+    private let tailscaleQueue = DispatchQueue(label: "notchpad.tailscale")
+    private let tailscaleController: TailscaleController = {
+        if let path = DebugTools.argument(after: "--tailscale-fixture") {
+            return TailscaleController(runner: FixtureRunner(path: path), cliExists: { true })
+        }
+        return TailscaleController(runner: ProcessRunner())
+    }()
+    private var tailscaleTimer: Timer?
     private var openTimers: [Timer] = []
 
     init() {
@@ -50,11 +69,13 @@ final class AppModel: ObservableObject {
         }
         observeMusic()
         music = isMusicRunning ? .idle : .notRunning
+        if DebugTools.argument(after: "--tab") == "tailscale" { selectedTab = .tailscale }
     }
 
     /// Called by the window controller right after the panel opens.
     func panelDidOpen() {
         shelf.refresh()
+        updateTailscaleRefresh()
         refreshTemperature()
         every(2) { $0.refreshTemperature() }
         refreshEvents()
@@ -75,6 +96,7 @@ final class AppModel: ObservableObject {
     func panelDidClose() {
         openTimers.forEach { $0.invalidate() }
         openTimers.removeAll()
+        updateTailscaleRefresh()
     }
 
     /// Runs `action` every `seconds` until the panel closes.
@@ -83,6 +105,67 @@ final class AppModel: ObservableObject {
             MainActor.assumeIsolated { if let self { action(self) } }
         }
         openTimers.append(timer)
+    }
+
+    // MARK: Tailscale
+
+    private var tailscaleShowing: Bool { isOpen && selectedTab == .tailscale }
+
+    /// Refreshes now and every 5 s while the Tailscale tab is showing; stops otherwise.
+    private func updateTailscaleRefresh() {
+        tailscaleTimer?.invalidate()
+        tailscaleTimer = nil
+        guard tailscaleShowing else { return }
+        refreshTailscale()
+        tailscaleTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshTailscale() }
+        }
+    }
+
+    private func refreshTailscale() {
+        DebugTools.log("tailscale refresh")
+        let controller = tailscaleController
+        tailscaleQueue.async { [weak self] in
+            let status = controller.status()
+            DispatchQueue.main.async {
+                guard let self, self.tailscaleShowing else { return }
+                self.tailscale = status
+                DebugTools.log("tailscale state: \(status.state)")
+            }
+        }
+    }
+
+    func connectTailscale(_ on: Bool) {
+        guard !tailscaleBusy else { return }
+        tailscaleBusy = true
+        tailscaleMessage = nil
+        let controller = tailscaleController
+        DispatchQueue.global().async { [weak self] in
+            let ok = controller.setConnected(on)
+            DebugTools.log("tailscale \(on ? "up" : "down") ok=\(ok)")
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.tailscaleBusy = false
+                if !ok {
+                    let text = on ? "Couldn't connect" : "Couldn't disconnect"
+                    self.tailscaleMessage = text
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        if self.tailscaleMessage == text { self.tailscaleMessage = nil }
+                    }
+                }
+                if self.tailscaleShowing { self.refreshTailscale() }
+            }
+        }
+    }
+
+    func copyIP(_ device: TailscaleDevice) {
+        guard let ip = device.ipv4 else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(ip, forType: .string)
+        copiedDeviceID = device.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            if self?.copiedDeviceID == device.id { self?.copiedDeviceID = nil }
+        }
     }
 
     // MARK: Music
@@ -181,4 +264,12 @@ final class AppModel: ObservableObject {
 
 private extension MusicState {
     var title: String? { if case .playing(let n) = self { n.title } else { nil } }
+}
+
+/// For `--tailscale-fixture <path>`: answers `status --json` with a saved file, `up`/`down` with success.
+private struct FixtureRunner: CommandRunning {
+    let path: String
+    func run(_ executable: String, _ arguments: [String]) -> (exitCode: Int32, output: Data)? {
+        (0, arguments.first == "status" ? ((try? Data(contentsOf: URL(fileURLWithPath: path))) ?? Data()) : Data())
+    }
 }

@@ -16,6 +16,7 @@ if args.contains("--click") {
     usleep(100_000)
     CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left)?
         .post(tap: .cghidEventTap)
+    usleep(60_000) // a real click holds the button for a moment
     CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left)?
         .post(tap: .cghidEventTap)
 }

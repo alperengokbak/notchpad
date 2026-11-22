@@ -16,7 +16,12 @@ struct NotchRootView: View {
                 .shadow(color: .black.opacity(model.isOpen ? 0.45 : 0), radius: 15, y: 8)
 
             if model.isOpen {
-                columns
+                TabBar(selected: $model.selectedTab)
+                    .frame(width: NotchGeometry.openSize.width, height: model.notchSize.height, alignment: .leading)
+                    .padding(.leading, 44)
+                    .frame(width: NotchGeometry.openSize.width, alignment: .leading)
+                    .transition(.opacity.animation(.easeOut(duration: 0.15)))
+                content
                     .padding(.top, model.notchSize.height + 4)
                     .padding(.horizontal, 22)
                     .padding(.bottom, 18)
@@ -34,6 +39,17 @@ struct NotchRootView: View {
                 }
             }
             return true
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch model.selectedTab {
+        case .home:
+            columns
+        case .tailscale:
+            TailscaleView(status: model.tailscale, busy: model.tailscaleBusy, message: model.tailscaleMessage,
+                          copiedDeviceID: model.copiedDeviceID,
+                          onConnect: { model.connectTailscale($0) }, onCopy: { model.copyIP($0) })
         }
     }
 
