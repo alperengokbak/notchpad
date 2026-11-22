@@ -11,8 +11,9 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 - **Today:** up to three events left today, from every calendar the Calendar app shows (iCloud, Google, work or university).
 - **Chip:** the average temperature of the chip's die sensors, in °C.
 - **Battery:** percentage, and time left or time to full.
+- **Tailscale tab:** a second tab with your Tailscale status, a Connect/Disconnect button and your devices. Click a device to copy its Tailscale IP. It uses the command line tool inside the Tailscale app, so it only works if Tailscale is installed, and it checks every 5 seconds only while the tab is open.
 
-Right-click the open panel for "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+The panel has two tabs at the top left, Home and Tailscale. Right-click the open panel for "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
 
 ## Requirements
 
