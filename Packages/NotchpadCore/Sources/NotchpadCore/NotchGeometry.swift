@@ -38,4 +38,15 @@ public enum NotchGeometry {
     public static func hotZone(notch: CGRect) -> CGRect {
         CGRect(x: notch.minX - 10, y: notch.minY - 10, width: notch.width + 20, height: notch.height + 10)
     }
+
+    /// The black extension left of the notch that shows the focus countdown while closed.
+    public static func wingRect(notch: CGRect, width: CGFloat = 70) -> CGRect {
+        CGRect(x: notch.minX - width, y: notch.minY, width: width, height: notch.height)
+    }
+
+    /// Hot zone that also covers the countdown extension when it's showing.
+    public static func hotZone(notch: CGRect, wing: CGRect?) -> CGRect {
+        guard let wing else { return hotZone(notch: notch) }
+        return hotZone(notch: notch.union(wing))
+    }
 }

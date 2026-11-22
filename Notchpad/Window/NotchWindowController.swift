@@ -78,7 +78,8 @@ final class NotchWindowController {
     var contentView: NSView? { panel?.contentView }
 
     private func mouseMoved(to point: CGPoint) {
-        let zone = machine.isOpen ? openRect : NotchGeometry.hotZone(notch: notch)
+        let wing = model.focus.isActive ? NotchGeometry.wingRect(notch: notch) : nil
+        let zone = machine.isOpen ? openRect : NotchGeometry.hotZone(notch: notch, wing: wing)
         machine.pointer(inside: zone.contains(point), now: ProcessInfo.processInfo.systemUptime)
         sync()
     }

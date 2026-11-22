@@ -24,6 +24,10 @@ final class AppModel: ObservableObject {
             if selectedTab != oldValue { updateTailscaleRefresh() }
         }
     }
+    @Published var focus = FocusTimer()
+    private(set) var lastFocusMinutes = 25
+    private var focusTicker: Timer?
+    private var askedNotificationPermission = false
     @Published var reminders: [ReminderSummary] = []
     @Published var remindersAccess: CalendarAccess = .unknown
     /// Ticked in the last ~1 s: shown checked, saved unless clicked again.
@@ -71,6 +75,12 @@ final class AppModel: ObservableObject {
         observeMusic()
         music = isMusicRunning ? .idle : .notRunning
         if let tab = DebugTools.argument(after: "--tab").flatMap(PanelTab.init(rawValue:)) { selectedTab = tab }
+        if CommandLine.arguments.contains("--focus-demo") { startFocus(.focus, minutes: 25) }
+        if let s = DebugTools.argument(after: "--focus-seconds").flatMap(Double.init) {
+            focus.start(.focus, seconds: s, now: Date())
+            askForNotificationsOnce()
+            updateFocusTicker()
+        }
     }
 
     /// Called by the window controller right after the panel opens.
@@ -260,6 +270,54 @@ final class AppModel: ObservableObject {
                 }
             }
         }
+    }
+
+    // MARK: Focus timer
+
+    func startFocus(_ kind: FocusKind, minutes: Int) {
+        if kind == .focus { lastFocusMinutes = minutes }
+        focus.start(kind, minutes: minutes, now: Date())
+        clock = Date()
+        askForNotificationsOnce()
+        updateFocusTicker()
+    }
+
+    func togglePauseFocus() {
+        if focus.isPaused { focus.resume(now: Date()) } else { focus.pause(now: Date()) }
+        updateFocusTicker()
+    }
+
+    func stopFocus() {
+        focus.stop()
+        updateFocusTicker()
+    }
+
+    /// The only timer that runs while the panel is closed, and only while a countdown runs.
+    private func updateFocusTicker() {
+        let running: Bool = { if case .running = focus.phase { return true }; return false }()
+        if running, focusTicker == nil {
+            focusTicker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.focusTick() }
+            }
+        } else if !running {
+            focusTicker?.invalidate()
+            focusTicker = nil
+        }
+    }
+
+    private func focusTick() {
+        clock = Date()
+        DebugTools.log("focus tick")
+        if focus.tick(now: Date()), let kind = focus.kind {
+            updateFocusTicker()
+            FocusAlert.fire(kind)
+        }
+    }
+
+    private func askForNotificationsOnce() {
+        guard !askedNotificationPermission else { return }
+        askedNotificationPermission = true
+        FocusAlert.requestPermission()
     }
 
     // MARK: Reminders

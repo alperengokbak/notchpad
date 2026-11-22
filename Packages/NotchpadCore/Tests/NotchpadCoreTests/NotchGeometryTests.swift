@@ -37,3 +37,14 @@ private let notch = CGRect(x: 764, y: 1085, width: 200, height: 32)
 @Test func hotZoneGrowsSidewaysAndDownOnly() {
     #expect(NotchGeometry.hotZone(notch: notch) == CGRect(x: 754, y: 1075, width: 220, height: 42))
 }
+
+@Test func wingSitsLeftOfNotch() {
+    #expect(NotchGeometry.wingRect(notch: notch) == CGRect(x: 694, y: 1085, width: 70, height: 32))
+}
+
+@Test func wingOnlyWhenTimerActive() {
+    #expect(NotchGeometry.hotZone(notch: notch, wing: nil) == NotchGeometry.hotZone(notch: notch))
+    let withWing = NotchGeometry.hotZone(notch: notch, wing: NotchGeometry.wingRect(notch: notch))
+    #expect(withWing.minX == 684)
+    #expect(withWing.maxX == NotchGeometry.hotZone(notch: notch).maxX)
+}

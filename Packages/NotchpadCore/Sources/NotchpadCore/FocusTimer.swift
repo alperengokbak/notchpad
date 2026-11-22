@@ -38,7 +38,11 @@ public struct FocusTimer: Equatable, Sendable {
     }
 
     public mutating func start(_ kind: FocusKind, minutes: Int, now: Date) {
-        phase = .running(kind, endsAt: now.addingTimeInterval(TimeInterval(minutes * 60)))
+        start(kind, seconds: TimeInterval(minutes * 60), now: now)
+    }
+
+    public mutating func start(_ kind: FocusKind, seconds: TimeInterval, now: Date) {
+        phase = .running(kind, endsAt: now.addingTimeInterval(seconds))
     }
 
     public mutating func pause(now: Date) {

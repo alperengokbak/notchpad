@@ -7,12 +7,21 @@ struct NotchRootView: View {
     @State private var dropTargeted = false
 
     private var shapeSize: CGSize { model.isOpen ? NotchGeometry.openSize : model.notchSize }
+    /// Width of the countdown extension: only while closed with a timer running or paused.
+    private var wingWidth: CGFloat { !model.isOpen && model.focus.isActive ? 70 : 0 }
 
     var body: some View {
         ZStack(alignment: .top) {
             NotchShape(bottomRadius: model.isOpen ? 26 : 8)
                 .fill(Color.black)
-                .frame(width: shapeSize.width, height: shapeSize.height)
+                .frame(width: shapeSize.width + wingWidth, height: shapeSize.height)
+                .overlay(alignment: .topLeading) {
+                    if wingWidth > 0 {
+                        FocusWing(timer: model.focus, now: model.clock)
+                            .frame(width: wingWidth, height: model.notchSize.height)
+                    }
+                }
+                .offset(x: -wingWidth / 2)
                 .shadow(color: .black.opacity(model.isOpen ? 0.45 : 0), radius: 15, y: 8)
 
             if model.isOpen {
@@ -80,6 +89,7 @@ struct NotchRootView: View {
         VStack(alignment: .leading, spacing: 10) {
             NextEventView(events: model.events, access: model.calendarAccess)
             Rectangle().fill(Color(white: 0.12)).frame(height: 1)
+            FocusCard(model: model)
             Spacer(minLength: 0)
         }
     }
