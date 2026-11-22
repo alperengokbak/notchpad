@@ -32,6 +32,7 @@ final class AppModel: ObservableObject {
     @Published var remindersAccess: CalendarAccess = .unknown
     /// Ticked in the last ~1 s: shown checked, saved unless clicked again.
     @Published var pendingReminderIDs: Set<String> = []
+    private var pendingTicks = PendingTicks()
     @Published var tailscale: TailscaleStatus?
     @Published var tailscaleBusy = false
     @Published var tailscaleMessage: String?
@@ -160,18 +161,32 @@ final class AppModel: ObservableObject {
         tailscaleBusy = true
         tailscaleMessage = nil
         let controller = tailscaleController
+        // Tailscale brings itself to the front when it starts; remember who had focus.
+        let previousFront = NSWorkspace.shared.frontmostApplication
         DispatchQueue.global().async { [weak self] in
+            var launchedTailscale = false
             let ok = on
                 ? controller.connect(
                     isAppRunning: { !NSRunningApplication.runningApplications(withBundleIdentifier: "io.tailscale.ipn.macos").isEmpty },
                     launchApp: {
                         DebugTools.log("tailscale: starting the app")
-                        NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/Applications/Tailscale.app"),
-                                                           configuration: .init())
+                        launchedTailscale = true
+                        // Start it in the background: never take focus from the app he's using.
+                        let config = NSWorkspace.OpenConfiguration()
+                        config.activates = false
+                        let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "io.tailscale.ipn.macos")
+                            ?? URL(fileURLWithPath: "/Applications/Tailscale.app")
+                        NSWorkspace.shared.openApplication(at: url, configuration: config)
                     },
                     sleep: { Thread.sleep(forTimeInterval: $0) })
                 : controller.setConnected(false)
             DebugTools.log("tailscale \(on ? "up" : "down") ok=\(ok)")
+            if launchedTailscale, let previousFront, previousFront.bundleIdentifier != "io.tailscale.ipn.macos" {
+                // Give focus back to the app he was using.
+                Thread.sleep(forTimeInterval: 0.5)
+                previousFront.activate()
+                DebugTools.log("focus returned")
+            }
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.tailscaleBusy = false
@@ -343,14 +358,18 @@ final class AppModel: ObservableObject {
 
     /// First click ticks (saved after ~1.2 s); a second click within that time undoes it.
     func toggleReminder(_ id: String) {
-        if pendingReminderIDs.contains(id) {
+        if pendingTicks.contains(id) {
+            pendingTicks.untick(id)
             pendingReminderIDs.remove(id)
             return
         }
+        let token = pendingTicks.tick(id)
         pendingReminderIDs.insert(id)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
-            guard let self, self.pendingReminderIDs.contains(id) else { return }
+            guard let self, self.pendingTicks.commit(id, token: token) else { return }
             self.remindersReader.complete(id)
+            // Drop the row now, so it doesn't flash back unticked while the refresh runs.
+            self.reminders.removeAll { $0.id == id }
             self.pendingReminderIDs.remove(id)
             DebugTools.log("reminder completed")
             self.refreshReminders()
