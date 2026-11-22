@@ -161,7 +161,16 @@ final class AppModel: ObservableObject {
         tailscaleMessage = nil
         let controller = tailscaleController
         DispatchQueue.global().async { [weak self] in
-            let ok = controller.setConnected(on)
+            let ok = on
+                ? controller.connect(
+                    isAppRunning: { !NSRunningApplication.runningApplications(withBundleIdentifier: "io.tailscale.ipn.macos").isEmpty },
+                    launchApp: {
+                        DebugTools.log("tailscale: starting the app")
+                        NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/Applications/Tailscale.app"),
+                                                           configuration: .init())
+                    },
+                    sleep: { Thread.sleep(forTimeInterval: $0) })
+                : controller.setConnected(false)
             DebugTools.log("tailscale \(on ? "up" : "down") ok=\(ok)")
             DispatchQueue.main.async {
                 guard let self else { return }

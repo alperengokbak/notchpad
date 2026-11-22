@@ -75,3 +75,48 @@ final class SpyCommands: CommandRunning, @unchecked Sendable {
     #expect(firstResult)
     #expect(spy.calls == [["up"]])
 }
+
+/// Answers like Tailscale: status fails until `ready`, then works.
+final class StartingTailscale: CommandRunning, @unchecked Sendable {
+    var ready = false
+    var calls: [[String]] = []
+    func run(_ executable: String, _ arguments: [String]) -> (exitCode: Int32, output: Data)? {
+        calls.append(arguments)
+        if arguments == ["status", "--json"] { return ready ? (0, Data(#"{"BackendState":"Stopped"}"#.utf8)) : nil }
+        return (0, Data())
+    }
+}
+
+@Test func connectSkipsLaunchWhenRunning() {
+    let runner = StartingTailscale()
+    runner.ready = true
+    var launched = false
+    let ok = TailscaleController(runner: runner, cliExists: { true })
+        .connect(isAppRunning: { true }, launchApp: { launched = true }, sleep: { _ in })
+    #expect(ok)
+    #expect(!launched)
+    #expect(runner.calls == [["up"]])
+}
+
+@Test func connectStartsTailscaleWhenNotRunning() {
+    let runner = StartingTailscale()
+    var naps = 0
+    let ok = TailscaleController(runner: runner, cliExists: { true })
+        .connect(isAppRunning: { false }, launchApp: {}, sleep: { _ in
+            naps += 1
+            if naps == 3 { runner.ready = true } // Tailscale answers after ~1.5 s
+        })
+    #expect(ok)
+    #expect(runner.calls.last == ["up"])
+    #expect(runner.calls.filter { $0 == ["status", "--json"] }.count == 4)
+}
+
+@Test func connectGivesUpAfter10s() {
+    let runner = StartingTailscale()
+    var slept: TimeInterval = 0
+    let ok = TailscaleController(runner: runner, cliExists: { true })
+        .connect(isAppRunning: { false }, launchApp: {}, sleep: { slept += $0 })
+    #expect(!ok)
+    #expect(slept == 10)
+    #expect(!runner.calls.contains(["up"]))
+}

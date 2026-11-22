@@ -29,6 +29,25 @@ public final class TailscaleController: @unchecked Sendable {
         return TailscaleStatus.parse(result.output) ?? TailscaleStatus(state: .notConnected, devices: [])
     }
 
+    /// Connect, starting the Tailscale app first if it isn't running. Waits up to 10 s for it to answer.
+    public func connect(isAppRunning: () -> Bool, launchApp: () -> Void, sleep: (TimeInterval) -> Void) -> Bool {
+        if !isAppRunning() {
+            launchApp()
+            var waited: TimeInterval = 0
+            while !answers() {
+                guard waited < 10 else { return false }
+                sleep(0.5)
+                waited += 0.5
+            }
+        }
+        return setConnected(true)
+    }
+
+    private func answers() -> Bool {
+        guard cliExists(), let result = runner.run(Self.cliPath, ["status", "--json"]) else { return false }
+        return TailscaleStatus.parse(result.output) != nil
+    }
+
     /// Runs `up` or `down`. Returns false if it failed, or if another connect/disconnect is still running.
     public func setConnected(_ on: Bool) -> Bool {
         guard lock.withLock({ busy ? false : { busy = true; return true }() }) else { return false }
