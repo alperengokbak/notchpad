@@ -76,5 +76,11 @@ struct NotchRootView: View {
     private var middleColumn: some View {
         RemindersSection(model: model)
     }
-    private var rightColumn: some View { Color.clear }
+    private var rightColumn: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            NextEventView(events: model.events, access: model.calendarAccess)
+            Rectangle().fill(Color(white: 0.12)).frame(height: 1)
+            Spacer(minLength: 0)
+        }
+    }
 }
