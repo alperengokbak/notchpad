@@ -9,8 +9,6 @@ final class AppModel: ObservableObject {
     @Published var isOpen = false
     /// Size of the real notch, so the closed shape matches it.
     @Published var notchSize = CGSize(width: 185, height: 32)
-    @Published var battery: BatteryStatus?
-    @Published var temperature: Int?
     @Published var events: [EventSummary] = []
     @Published var calendarAccess: CalendarAccess = .unknown
     @Published var music: MusicState = .notRunning {
@@ -37,8 +35,6 @@ final class AppModel: ObservableObject {
     /// Set by the window controller: keeps the panel open while a file is dragged out.
     var onShelfDragActive: ((Bool) -> Void)?
 
-    private let batteryReader = BatteryReader()
-    private let temperatureReader = TemperatureReader()
     private let calendarReader = CalendarReader()
     private let musicQueue = DispatchQueue(label: "notchpad.music")
     private let musicController = MusicController(
@@ -59,11 +55,6 @@ final class AppModel: ObservableObject {
     private var openTimers: [Timer] = []
 
     init() {
-        battery = batteryReader.current()
-        batteryReader.observe { [weak self] in
-            guard let self else { return }
-            self.battery = self.batteryReader.current()
-        }
         calendarAccess = calendarReader.access
         NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: calendarReader.store,
                                                queue: .main) { [weak self] _ in
@@ -78,8 +69,6 @@ final class AppModel: ObservableObject {
     func panelDidOpen() {
         shelf.refresh()
         updateTailscaleRefresh()
-        refreshTemperature()
-        every(2) { $0.refreshTemperature() }
         refreshEvents()
         every(60) { $0.refreshEvents() }
         refreshMusic()
@@ -262,9 +251,6 @@ final class AppModel: ObservableObject {
         events = DayEvents.upcoming(calendarReader.todaysEvents(now: Date()), now: Date(), calendar: .current)
     }
 
-    private func refreshTemperature() {
-        temperature = ChipTemperature.average(temperatureReader.readAll())
-    }
 }
 
 private extension MusicState {

@@ -55,10 +55,10 @@ struct NotchRootView: View {
 
     private var columns: some View {
         HStack(alignment: .top, spacing: 20) {
-            leftColumn.frame(width: 250)
+            leftColumn.frame(width: 220)
             Rectangle().fill(Color(white: 0.12)).frame(width: 1)
             middleColumn.frame(maxWidth: .infinity, alignment: .leading)
-            rightColumn.frame(width: 80, alignment: .trailing)
+            rightColumn.frame(width: 140, alignment: .topLeading)
         }
     }
 
@@ -74,7 +74,5 @@ struct NotchRootView: View {
     private var middleColumn: some View {
         EventsView(events: model.events, access: model.calendarAccess)
     }
-    private var rightColumn: some View {
-        StatsView(battery: model.battery, temperature: model.temperature)
-    }
+    private var rightColumn: some View { Color.clear }
 }

@@ -17,7 +17,7 @@ public struct ScreenMetrics: Equatable, Sendable {
 
 public enum NotchGeometry {
     /// Size of the open panel (layout A2).
-    public static let openSize = CGSize(width: 600, height: 200)
+    public static let openSize = CGSize(width: 680, height: 200)
 
     /// The notch, or nil when the screen has none.
     public static func notchRect(_ m: ScreenMetrics) -> CGRect? {

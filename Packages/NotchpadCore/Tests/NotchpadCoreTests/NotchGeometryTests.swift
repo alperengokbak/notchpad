@@ -26,7 +26,7 @@ private let notch = CGRect(x: 764, y: 1085, width: 200, height: 32)
 
 @Test func openRectIsCentredAndTopAligned() {
     #expect(NotchGeometry.openRect(notch: notch, screen: metrics.frame)
-            == CGRect(x: 564, y: 917, width: 600, height: 200))
+            == CGRect(x: 524, y: 917, width: 680, height: 200))
 }
 
 @Test func openRectIsClampedInsideScreen() {
