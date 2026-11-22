@@ -1,0 +1,48 @@
+name: Notchpad
+options:
+  bundleIdPrefix: com.alperengokbak
+  deploymentTarget:
+    macOS: "14.0"
+packages:
+  NotchpadCore:
+    path: Packages/NotchpadCore
+targets:
+  Notchpad:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - Notchpad
+    dependencies:
+      - package: NotchpadCore
+    info:
+      path: Notchpad/Info.plist
+      properties:
+        CFBundleDisplayName: Notchpad
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSUIElement: true
+        LSMinimumSystemVersion: "14.0"
+        NSAppleEventsUsageDescription: Notchpad shows and controls the song playing in Apple Music.
+        NSCalendarsFullAccessUsageDescription: Notchpad shows your remaining events for today.
+        NSHumanReadableCopyright: Copyright © 2026 Alperen Gökbak. MIT licence.
+    settings:
+      base:
+        PRODUCT_NAME: Notchpad
+        PRODUCT_BUNDLE_IDENTIFIER: com.alperengokbak.notchpad
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        PROVISIONING_PROFILE_SPECIFIER: ""
+        ENABLE_HARDENED_RUNTIME: NO
+        ENABLE_APP_SANDBOX: NO
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        GENERATE_INFOPLIST_FILE: NO
+        COMBINE_HIDPI_IMAGES: YES
+schemes:
+  Notchpad:
+    build:
+      targets:
+        Notchpad: all
+    run:
+      config: Debug
