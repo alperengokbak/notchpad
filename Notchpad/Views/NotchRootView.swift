@@ -46,6 +46,8 @@ struct NotchRootView: View {
         switch model.selectedTab {
         case .home:
             columns
+        case .reminders:
+            RemindersTab(model: model)
         case .tailscale:
             TailscaleView(status: model.tailscale, busy: model.tailscaleBusy, message: model.tailscaleMessage,
                           copiedDeviceID: model.copiedDeviceID,
@@ -72,7 +74,7 @@ struct NotchRootView: View {
         }
     }
     private var middleColumn: some View {
-        EventsView(events: model.events, access: model.calendarAccess)
+        RemindersSection(model: model)
     }
     private var rightColumn: some View { Color.clear }
 }

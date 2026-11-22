@@ -1,11 +1,12 @@
 import SwiftUI
 
 enum PanelTab: String {
-    case home, tailscale
+    case home, reminders, tailscale
 
     var title: String {
         switch self {
         case .home: "Home"
+        case .reminders: "Reminders"
         case .tailscale: "Tailscale"
         }
     }
@@ -17,7 +18,7 @@ struct TabBar: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach([PanelTab.home, .tailscale], id: \.self) { tab in
+            ForEach([PanelTab.home, .reminders, .tailscale], id: \.self) { tab in
                 Button { selected = tab } label: {
                     Text(tab.title)
                         .font(.system(size: 11, weight: .medium))

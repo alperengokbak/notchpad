@@ -24,6 +24,10 @@ final class AppModel: ObservableObject {
             if selectedTab != oldValue { updateTailscaleRefresh() }
         }
     }
+    @Published var reminders: [ReminderSummary] = []
+    @Published var remindersAccess: CalendarAccess = .unknown
+    /// Ticked in the last ~1 s: shown checked, saved unless clicked again.
+    @Published var pendingReminderIDs: Set<String> = []
     @Published var tailscale: TailscaleStatus?
     @Published var tailscaleBusy = false
     @Published var tailscaleMessage: String?
@@ -36,6 +40,7 @@ final class AppModel: ObservableObject {
     var onShelfDragActive: ((Bool) -> Void)?
 
     private let calendarReader = CalendarReader()
+    private lazy var remindersReader = RemindersReader(store: calendarReader.store)
     private let musicQueue = DispatchQueue(label: "notchpad.music")
     private let musicController = MusicController(
         isMusicRunning: { AppModel.musicIsRunning() },
@@ -58,11 +63,14 @@ final class AppModel: ObservableObject {
         calendarAccess = calendarReader.access
         NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: calendarReader.store,
                                                queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshEvents() }
+            MainActor.assumeIsolated {
+                self?.refreshEvents()
+                self?.refreshReminders()
+            }
         }
         observeMusic()
         music = isMusicRunning ? .idle : .notRunning
-        if DebugTools.argument(after: "--tab") == "tailscale" { selectedTab = .tailscale }
+        if let tab = DebugTools.argument(after: "--tab").flatMap(PanelTab.init(rawValue:)) { selectedTab = tab }
     }
 
     /// Called by the window controller right after the panel opens.
@@ -71,6 +79,14 @@ final class AppModel: ObservableObject {
         updateTailscaleRefresh()
         refreshEvents()
         every(60) { $0.refreshEvents() }
+        refreshReminders()
+        if remindersAccess == .unknown {
+            Task {
+                remindersAccess = await remindersReader.requestAccess()
+                DebugTools.log("reminders: \(remindersAccess)")
+                refreshReminders()
+            }
+        }
         refreshMusic()
         clock = Date()
         every(1) { $0.clock = Date() }
@@ -243,6 +259,34 @@ final class AppModel: ObservableObject {
                     self.artworkTitle = nil
                 }
             }
+        }
+    }
+
+    // MARK: Reminders
+
+    private func refreshReminders() {
+        remindersAccess = remindersReader.access
+        guard remindersAccess == .granted else { reminders = []; return }
+        Task {
+            let items = await remindersReader.fetchIncomplete()
+            reminders = items
+            DebugTools.log("reminders loaded: \(items.count)")
+        }
+    }
+
+    /// First click ticks (saved after ~1.2 s); a second click within that time undoes it.
+    func toggleReminder(_ id: String) {
+        if pendingReminderIDs.contains(id) {
+            pendingReminderIDs.remove(id)
+            return
+        }
+        pendingReminderIDs.insert(id)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            guard let self, self.pendingReminderIDs.contains(id) else { return }
+            self.remindersReader.complete(id)
+            self.pendingReminderIDs.remove(id)
+            DebugTools.log("reminder completed")
+            self.refreshReminders()
         }
     }
 

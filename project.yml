@@ -25,6 +25,7 @@ targets:
         LSMinimumSystemVersion: "14.0"
         NSAppleEventsUsageDescription: Notchpad shows and controls the song playing in Apple Music.
         NSCalendarsFullAccessUsageDescription: Notchpad shows your remaining events for today.
+        NSRemindersFullAccessUsageDescription: Notchpad shows your reminders and lets you tick them off.
         NSHumanReadableCopyright: Copyright © 2026 Alperen Gökbak. MIT licence.
     settings:
       base:
