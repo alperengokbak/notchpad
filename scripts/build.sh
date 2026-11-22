@@ -9,4 +9,4 @@ IDENTITY=${IDENTITY:--}
 xcodebuild -project Notchpad.xcodeproj -scheme Notchpad -configuration "${CONFIG:-Debug}" \
   -derivedDataPath build CODE_SIGN_IDENTITY="$IDENTITY" build > build/xcodebuild.log 2>&1 \
   || { grep -E " error:" build/xcodebuild.log | head -20; echo "** BUILD FAILED ** (see build/xcodebuild.log)"; exit 1; }
-tail -1 build/xcodebuild.log
+grep -E "\*\* BUILD" build/xcodebuild.log | tail -1

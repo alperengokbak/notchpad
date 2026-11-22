@@ -1,0 +1,112 @@
+import AppKit
+import NotchpadCore
+import SwiftUI
+
+/// Places the panel over the notch of the built-in screen and opens/closes it.
+@MainActor
+final class NotchWindowController {
+    private let model: AppModel
+    private var machine = PanelStateMachine()
+    private let monitors = MouseMonitors()
+    private var panel: NotchPanel?
+    private var tickTimer: Timer?
+    private var notch: CGRect = .zero
+    private var openRect: CGRect = .zero
+
+    var onOpen: (() -> Void)?
+    var onClose: (() -> Void)?
+
+    init(model: AppModel, forceOpen: Bool) {
+        self.model = model
+        machine.forceOpen = forceOpen
+    }
+
+    func start() {
+        monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
+        monitors.start()
+        NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.layout() }
+        }
+        layout()
+        sync()
+    }
+
+    /// The built-in display, if it's connected and awake.
+    private static func builtInScreen() -> NSScreen? {
+        NSScreen.screens.first { screen in
+            guard let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+            else { return false }
+            return CGDisplayIsBuiltin(id) != 0
+        }
+    }
+
+    private func layout() {
+        guard let screen = Self.builtInScreen(),
+              let notchRect = NotchGeometry.notchRect(ScreenMetrics(
+                  frame: screen.frame,
+                  leftAuxWidth: screen.auxiliaryTopLeftArea?.width,
+                  rightAuxWidth: screen.auxiliaryTopRightArea?.width,
+                  safeTop: screen.safeAreaInsets.top))
+        else {
+            panel?.orderOut(nil)
+            return
+        }
+        notch = notchRect
+        openRect = NotchGeometry.openRect(notch: notchRect, screen: screen.frame)
+        model.notchSize = notchRect.size
+
+        if panel == nil {
+            let p = NotchPanel(frame: openRect)
+            let host = PanelHostingView(rootView: NotchRootView(model: model))
+            host.frame = NSRect(origin: .zero, size: openRect.size)
+            p.contentView = host
+            panel = p
+        }
+        panel?.setFrame(openRect, display: true)
+        panel?.orderFrontRegardless()
+    }
+
+    /// For `--snapshot`: the panel's content view.
+    var contentView: NSView? { panel?.contentView }
+
+    private func mouseMoved(to point: CGPoint) {
+        let zone = machine.isOpen ? openRect : NotchGeometry.hotZone(notch: notch)
+        machine.pointer(inside: zone.contains(point), now: ProcessInfo.processInfo.systemUptime)
+        sync()
+    }
+
+    /// Applies the state machine's decision to the window and model, and runs the
+    /// 50 ms tick only while a delayed open or close is waiting.
+    private func sync() {
+        if machine.isOpen != model.isOpen {
+            let open = machine.isOpen
+            panel?.ignoresMouseEvents = !open
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { model.isOpen = open }
+            DebugTools.log(open ? "open" : "closed")
+            if open { model.panelDidOpen(); onOpen?() } else { model.panelDidClose(); onClose?() }
+        }
+        if machine.hasPendingDeadline {
+            guard tickTimer == nil else { return }
+            tickTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.machine.tick(now: ProcessInfo.processInfo.systemUptime)
+                    self.sync()
+                }
+            }
+        } else {
+            tickTimer?.invalidate()
+            tickTimer = nil
+        }
+    }
+}
+
+/// Hosting view that shows the panel menu on right-click.
+final class PanelHostingView<Content: View>: NSHostingView<Content> {
+    override func rightMouseDown(with event: NSEvent) {
+        NSMenu.popUpContextMenu(PanelMenu.make(), with: event, for: self)
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
