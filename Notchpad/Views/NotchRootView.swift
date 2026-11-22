@@ -37,7 +37,12 @@ struct NotchRootView: View {
     }
 
     // Replaced by the feature views in later tasks.
-    private var leftColumn: some View { Color.clear }
+    private var leftColumn: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            MusicView(state: model.music, artwork: model.artwork, now: model.clock,
+                      onCommand: { model.sendMusic($0) }, onOpenMusic: { model.openMusic() })
+        }
+    }
     private var middleColumn: some View {
         EventsView(events: model.events, access: model.calendarAccess)
     }

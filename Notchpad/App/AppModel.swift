@@ -13,10 +13,20 @@ final class AppModel: ObservableObject {
     @Published var temperature: Int?
     @Published var events: [EventSummary] = []
     @Published var calendarAccess: CalendarAccess = .unknown
+    @Published var music: MusicState = .notRunning
+    @Published var artwork: NSImage?
+    /// Ticks every second while open, so the progress bar moves.
+    @Published var clock = Date()
 
     private let batteryReader = BatteryReader()
     private let temperatureReader = TemperatureReader()
     private let calendarReader = CalendarReader()
+    private let musicQueue = DispatchQueue(label: "notchpad.music")
+    private let musicController = MusicController(
+        isMusicRunning: { !NSRunningApplication.runningApplications(withBundleIdentifier: AppModel.musicBundleID).isEmpty },
+        runner: AppleScriptRunner())
+    nonisolated static let musicBundleID = "com.apple.Music"
+    private var artworkTitle: String?
     private var openTimers: [Timer] = []
 
     init() {
@@ -30,6 +40,8 @@ final class AppModel: ObservableObject {
                                                queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshEvents() }
         }
+        observeMusic()
+        music = isMusicRunning ? .idle : .notRunning
     }
 
     /// Called by the window controller right after the panel opens.
@@ -38,6 +50,9 @@ final class AppModel: ObservableObject {
         every(2) { $0.refreshTemperature() }
         refreshEvents()
         every(60) { $0.refreshEvents() }
+        refreshMusic()
+        clock = Date()
+        every(1) { $0.clock = Date() }
         if calendarAccess == .unknown {
             Task {
                 calendarAccess = await calendarReader.requestAccess()
@@ -59,6 +74,79 @@ final class AppModel: ObservableObject {
             MainActor.assumeIsolated { if let self { action(self) } }
         }
         openTimers.append(timer)
+    }
+
+    // MARK: Music
+
+    func sendMusic(_ command: MusicCommand) {
+        let controller = musicController
+        musicQueue.async { controller.send(command) }
+    }
+
+    func openMusic() {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.musicBundleID) {
+            NSWorkspace.shared.openApplication(at: url, configuration: .init())
+        }
+    }
+
+    private var isMusicRunning: Bool {
+        !NSRunningApplication.runningApplications(withBundleIdentifier: Self.musicBundleID).isEmpty
+    }
+
+    private func observeMusic() {
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("com.apple.Music.playerInfo"), object: nil, queue: .main
+        ) { [weak self] note in
+            let info = note.userInfo ?? [:]
+            let track = NowPlaying.from(playerInfo: info, now: Date())
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
+                if self.isOpen { self.refreshMusic() }
+            }
+        }
+        let ws = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            ws.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
+                let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+                guard app?.bundleIdentifier == AppModel.musicBundleID else { return }
+                let launched = name == NSWorkspace.didLaunchApplicationNotification
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.music = launched ? .idle : .notRunning
+                    if !launched { self.artwork = nil; self.artworkTitle = nil }
+                }
+            }
+        }
+    }
+
+    /// Asks Music for the current track, position and artwork. Never launches Music.
+    private func refreshMusic() {
+        guard isMusicRunning else {
+            music = .notRunning
+            artwork = nil
+            artworkTitle = nil
+            return
+        }
+        if music == .notRunning { music = .idle }
+        let controller = musicController
+        let knownArtworkTitle = artworkTitle
+        musicQueue.async { [weak self] in
+            let track = controller.fetchNowPlaying(now: Date())
+            let needsArtwork = track != nil && track?.title != knownArtworkTitle
+            let data = needsArtwork ? controller.fetchArtwork() : nil
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.music = track.map { .playing($0) } ?? .idle
+                if needsArtwork {
+                    self.artwork = data.flatMap(NSImage.init(data:))
+                    self.artworkTitle = track?.title
+                } else if track == nil {
+                    self.artwork = nil
+                    self.artworkTitle = nil
+                }
+            }
+        }
     }
 
     private func refreshEvents() {
