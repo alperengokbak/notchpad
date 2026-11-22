@@ -20,3 +20,6 @@ CLAUDE.local.md
 
 # XcodeGen output (regenerated from project.yml)
 Notchpad.xcodeproj/
+
+# Launch video output (brag-slim)
+brag-output/
