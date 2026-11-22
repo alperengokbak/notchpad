@@ -63,12 +63,24 @@ private struct ShelfItemView: View {
         }
         .overlay(alignment: .topTrailing) {
             if hovering {
-                Button { store.remove(item.id) } label: {
-                    Image(systemName: "xmark.circle.fill").font(.system(size: 12))
-                        .foregroundStyle(.white, Color(white: 0.35))
+                HStack(spacing: 2) {
+                    if let url {
+                        Button { AirDrop.send([url]) } label: {
+                            Image(systemName: "dot.radiowaves.up.forward").font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 15, height: 15)
+                                .background(Circle().fill(Color.blue))
+                        }
+                        .buttonStyle(.plain)
+                        .help("AirDrop")
+                    }
+                    Button { store.remove(item.id) } label: {
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 12))
+                            .foregroundStyle(.white, Color(white: 0.35))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                .offset(x: 2, y: -4)
+                .offset(x: 6, y: -4)
             }
         }
         .onHover { hovering = $0 }

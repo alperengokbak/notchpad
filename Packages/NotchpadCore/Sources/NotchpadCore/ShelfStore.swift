@@ -60,6 +60,9 @@ public final class ShelfStore: ObservableObject {
     /// The file's current location, or nil while its disk is disconnected.
     public func url(for id: UUID) -> URL? { resolved[id] }
 
+    /// Every file that can be used right now, in shelf order (skips files on a disconnected disk).
+    public func availableURLs() -> [URL] { items.compactMap { resolved[$0.id] } }
+
     /// Re-checks every file: drops deleted or trashed ones, follows moves and renames,
     /// keeps files on a disconnected disk (they come back when it's plugged in).
     public func refresh() {

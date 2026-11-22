@@ -123,3 +123,10 @@ private struct Sandbox {
     #expect(store.items.map(\.name) == ["renamed.txt"])
     #expect(store.url(for: store.items[0].id)?.lastPathComponent == "renamed.txt")
 }
+
+@MainActor @Test func availableURLsInShelfOrder() throws {
+    let s = try Sandbox()
+    let store = ShelfStore(storageURL: s.storage)
+    store.add([s.b, s.a])
+    #expect(store.availableURLs().map(\.lastPathComponent) == ["b.txt", "a.txt"])
+}

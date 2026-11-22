@@ -11,6 +11,9 @@ enum PanelMenu {
             clear.target = MenuTarget.shared
             MenuTarget.shared.shelf = shelf
             menu.addItem(clear)
+            let airdrop = NSMenuItem(title: "AirDrop all files", action: #selector(MenuTarget.airdropAll), keyEquivalent: "")
+            airdrop.target = MenuTarget.shared
+            menu.addItem(airdrop)
             menu.addItem(.separator())
         }
         let login = NSMenuItem(title: "Launch at login", action: #selector(MenuTarget.toggleLogin), keyEquivalent: "")
@@ -32,6 +35,10 @@ final class MenuTarget: NSObject {
 
     @objc func clearShelf() {
         shelf?.clear()
+    }
+
+    @objc func airdropAll() {
+        if let urls = shelf?.availableURLs() { AirDrop.send(urls) }
     }
 
     @objc func toggleLogin() {

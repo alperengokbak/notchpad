@@ -7,7 +7,7 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 ## What's in the panel
 
 - **Music:** the current Apple Music track with its cover, a progress bar, and previous, play/pause and next. Notchpad never starts Music by itself. If Music is closed, there's an "Open Music" button.
-- **Shelf:** drag files onto the notch and they wait there until you drag them out somewhere else. The shelf keeps a link to the original file (no copies) and is still there after a restart. When you drag a file towards the closed notch, the panel opens by itself.
+- **Shelf:** drag files onto the notch and they wait there until you drag them out somewhere else. The shelf keeps a link to the original file (no copies) and is still there after a restart. When you drag a file towards the closed notch, the panel opens by itself. Hover a file and click the blue AirDrop icon to send it to your iPhone or another Mac, or right-click the panel for "AirDrop all files".
 - **Reminders:** your overdue and soonest reminders from every list, with a circle to tick them off. Click the Reminders heading to see all of them in the Reminders tab. The Reminders app doesn't need to be open.
 - **Next:** your next event today, from every calendar the Calendar app shows.
 - **Focus timer:** start a 25 or 50 minute session. When you close the panel, the countdown stays visible on a small black strip left of the notch (red dot for focus, green for a break). When the time is up you hear a sound and get a notification, then you can start a 5 minute break or go again.
