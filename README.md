@@ -24,7 +24,7 @@ Right-click the open panel for "Launch at login" and "Quit Notchpad". There's no
 
 ```bash
 brew install xcodegen
-git clone <this repo> && cd notchpad
+git clone https://github.com/alperengokbak/notchpad.git && cd notchpad
 scripts/build.sh
 open build/Build/Products/Debug/Notchpad.app
 ```
