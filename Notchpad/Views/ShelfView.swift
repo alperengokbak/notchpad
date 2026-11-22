@@ -35,14 +35,24 @@ private struct ShelfItemView: View {
     @State private var hovering = false
 
     var body: some View {
-        if let url = store.url(for: item.id) {
-            VStack(spacing: 3) {
-                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
-                    .resizable().frame(width: 30, height: 36)
-                Text(item.name).font(.system(size: 9)).foregroundStyle(Color(white: 0.8))
-                    .lineLimit(1).truncationMode(.middle).frame(width: 44)
+        let url = store.url(for: item.id)
+        VStack(spacing: 3) {
+            Group {
+                if let url {
+                    Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable()
+                } else {
+                    // The file's disk is disconnected: show it dimmed until it's back.
+                    Image(systemName: "externaldrive.badge.xmark").resizable().aspectRatio(contentMode: .fit)
+                        .foregroundStyle(Color(white: 0.5))
+                }
             }
-            .overlay {
+            .frame(width: 30, height: 36)
+            Text(item.name).font(.system(size: 9)).foregroundStyle(Color(white: 0.8))
+                .lineLimit(1).truncationMode(.middle).frame(width: 44)
+        }
+        .opacity(url == nil ? 0.45 : 1)
+        .overlay {
+            if let url {
                 ShelfItemDragView(url: url,
                                   onDragStarted: { onDragActive(true) },
                                   onDragEnded: { accepted in
@@ -50,17 +60,17 @@ private struct ShelfItemView: View {
                                       onDragActive(false)
                                   })
             }
-            .overlay(alignment: .topTrailing) {
-                if hovering {
-                    Button { store.remove(item.id) } label: {
-                        Image(systemName: "xmark.circle.fill").font(.system(size: 12))
-                            .foregroundStyle(.white, Color(white: 0.35))
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: 2, y: -4)
-                }
-            }
-            .onHover { hovering = $0 }
         }
+        .overlay(alignment: .topTrailing) {
+            if hovering {
+                Button { store.remove(item.id) } label: {
+                    Image(systemName: "xmark.circle.fill").font(.system(size: 12))
+                        .foregroundStyle(.white, Color(white: 0.35))
+                }
+                .buttonStyle(.plain)
+                .offset(x: 2, y: -4)
+            }
+        }
+        .onHover { hovering = $0 }
     }
 }

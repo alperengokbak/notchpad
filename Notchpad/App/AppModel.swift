@@ -54,6 +54,7 @@ final class AppModel: ObservableObject {
 
     /// Called by the window controller right after the panel opens.
     func panelDidOpen() {
+        shelf.refresh()
         refreshTemperature()
         every(2) { $0.refreshTemperature() }
         refreshEvents()

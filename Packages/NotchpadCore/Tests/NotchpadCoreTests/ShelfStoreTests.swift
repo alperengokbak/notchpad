@@ -91,3 +91,35 @@ private struct Sandbox {
     ShelfStore(storageURL: nested).add([s.a])
     #expect(FileManager.default.fileExists(atPath: nested.path))
 }
+
+@MainActor @Test func trashedFileIsDroppedOnLoad() throws {
+    let s = try Sandbox()
+    ShelfStore(storageURL: s.storage).add([s.a, s.b])
+    let trash = s.dir.appendingPathComponent(".Trash")
+    try FileManager.default.createDirectory(at: trash, withIntermediateDirectories: true)
+    try FileManager.default.moveItem(at: s.a, to: trash.appendingPathComponent("a.txt"))
+    #expect(ShelfStore(storageURL: s.storage).items.map(\.name) == ["b.txt"])
+}
+
+@MainActor @Test func refreshDropsFilesTrashedOrDeletedWhileRunning() throws {
+    let s = try Sandbox()
+    let store = ShelfStore(storageURL: s.storage)
+    store.add([s.a, s.b])
+    let trash = s.dir.appendingPathComponent(".Trashes/501")
+    try FileManager.default.createDirectory(at: trash, withIntermediateDirectories: true)
+    try FileManager.default.moveItem(at: s.a, to: trash.appendingPathComponent("a.txt"))
+    try FileManager.default.removeItem(at: s.b)
+    store.refresh()
+    #expect(store.items.isEmpty)
+    #expect(ShelfStore(storageURL: s.storage).items.isEmpty)
+}
+
+@MainActor @Test func refreshFollowsRenameWhileRunning() throws {
+    let s = try Sandbox()
+    let store = ShelfStore(storageURL: s.storage)
+    store.add([s.a])
+    try FileManager.default.moveItem(at: s.a, to: s.dir.appendingPathComponent("renamed.txt"))
+    store.refresh()
+    #expect(store.items.map(\.name) == ["renamed.txt"])
+    #expect(store.url(for: store.items[0].id)?.lastPathComponent == "renamed.txt")
+}
