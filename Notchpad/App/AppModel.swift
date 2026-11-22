@@ -13,10 +13,18 @@ final class AppModel: ObservableObject {
     @Published var temperature: Int?
     @Published var events: [EventSummary] = []
     @Published var calendarAccess: CalendarAccess = .unknown
-    @Published var music: MusicState = .notRunning
+    @Published var music: MusicState = .notRunning {
+        didSet { if case .playing(let n) = music, n.title != oldValue.title { DebugTools.log("music: \(n.title)") } }
+    }
     @Published var artwork: NSImage?
     /// Ticks every second while open, so the progress bar moves.
     @Published var clock = Date()
+
+    let shelf = ShelfStore(storageURL: FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Notchpad/shelf.json"))
+    /// Set by the window controller: keeps the panel open while a file is dragged out.
+    var onShelfDragActive: ((Bool) -> Void)?
 
     private let batteryReader = BatteryReader()
     private let temperatureReader = TemperatureReader()
@@ -157,4 +165,8 @@ final class AppModel: ObservableObject {
     private func refreshTemperature() {
         temperature = ChipTemperature.average(temperatureReader.readAll())
     }
+}
+
+private extension MusicState {
+    var title: String? { if case .playing(let n) = self { n.title } else { nil } }
 }

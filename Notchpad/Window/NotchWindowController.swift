@@ -22,6 +22,11 @@ final class NotchWindowController {
     }
 
     func start() {
+        model.onShelfDragActive = { [weak self] active in
+            guard let self else { return }
+            self.machine.setShelfDragActive(active, now: ProcessInfo.processInfo.systemUptime)
+            self.sync()
+        }
         monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
         monitors.start()
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
@@ -59,6 +64,7 @@ final class NotchWindowController {
         if panel == nil {
             let p = NotchPanel(frame: openRect)
             let host = PanelHostingView(rootView: NotchRootView(model: model))
+            host.shelf = model.shelf
             host.frame = NSRect(origin: .zero, size: openRect.size)
             p.contentView = host
             panel = p
@@ -104,8 +110,10 @@ final class NotchWindowController {
 
 /// Hosting view that shows the panel menu on right-click.
 final class PanelHostingView<Content: View>: NSHostingView<Content> {
+    weak var shelf: ShelfStore?
+
     override func rightMouseDown(with event: NSEvent) {
-        NSMenu.popUpContextMenu(PanelMenu.make(), with: event, for: self)
+        NSMenu.popUpContextMenu(PanelMenu.make(shelf: shelf), with: event, for: self)
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }

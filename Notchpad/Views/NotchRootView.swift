@@ -4,6 +4,7 @@ import SwiftUI
 /// The whole panel: a black notch shape that grows into layout A2 when open.
 struct NotchRootView: View {
     @ObservedObject var model: AppModel
+    @State private var dropTargeted = false
 
     private var shapeSize: CGSize { model.isOpen ? NotchGeometry.openSize : model.notchSize }
 
@@ -25,6 +26,15 @@ struct NotchRootView: View {
         }
         .frame(width: NotchGeometry.openSize.width, height: NotchGeometry.openSize.height, alignment: .top)
         .foregroundStyle(.white)
+        .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
+            for provider in providers {
+                _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                    guard let url else { return }
+                    DispatchQueue.main.async { model.shelf.add([url]) }
+                }
+            }
+            return true
+        }
     }
 
     private var columns: some View {
@@ -41,6 +51,8 @@ struct NotchRootView: View {
         VStack(alignment: .leading, spacing: 12) {
             MusicView(state: model.music, artwork: model.artwork, now: model.clock,
                       onCommand: { model.sendMusic($0) }, onOpenMusic: { model.openMusic() })
+            ShelfView(store: model.shelf, isDropTargeted: dropTargeted,
+                      onDragActive: { model.onShelfDragActive?($0) })
         }
     }
     private var middleColumn: some View {
