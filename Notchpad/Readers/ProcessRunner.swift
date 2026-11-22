@@ -11,15 +11,26 @@ struct ProcessRunner: CommandRunning {
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
-        do { try process.run() } catch { return nil }
-
         let finished = DispatchSemaphore(value: 0)
         process.terminationHandler = { _ in finished.signal() }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        do { try process.run() } catch { return nil }
+
+        // Read on another thread, so a hung tool can't block us past the timeout.
+        let box = OutputBox()
+        let readDone = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            box.data = pipe.fileHandleForReading.readDataToEndOfFile()
+            readDone.signal()
+        }
         if finished.wait(timeout: .now() + 10) == .timedOut {
             process.terminate()
             return nil
         }
-        return (process.terminationStatus, data)
+        _ = readDone.wait(timeout: .now() + 2)
+        return (process.terminationStatus, box.data)
     }
+}
+
+private final class OutputBox: @unchecked Sendable {
+    var data = Data()
 }
