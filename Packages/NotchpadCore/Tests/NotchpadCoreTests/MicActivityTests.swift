@@ -28,3 +28,13 @@ private let t0 = Date(timeIntervalSinceReferenceDate: 5_000)
     m.update(isRunning: true, now: t0.addingTimeInterval(90))
     #expect(m.elapsed(now: t0.addingTimeInterval(100)) == 10)
 }
+
+@Test func perProcessInputWinsOverDeviceRunning() {
+    // AirPods playing music: the device runs, but no process records → not "in use".
+    #expect(!MicSignal.inUse(processesRecording: [false, false], deviceRunning: true))
+    #expect(MicSignal.inUse(processesRecording: [false, true], deviceRunning: true))
+    #expect(MicSignal.inUse(processesRecording: [true], deviceRunning: false))
+    // Older macOS without per-process info: fall back to the device.
+    #expect(MicSignal.inUse(processesRecording: nil, deviceRunning: true))
+    #expect(!MicSignal.inUse(processesRecording: nil, deviceRunning: false))
+}

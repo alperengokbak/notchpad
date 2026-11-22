@@ -87,7 +87,7 @@ final class AppModel: ObservableObject {
         if CommandLine.arguments.contains("--focus-demo") { startFocus(.focus, minutes: 25) }
         if Self.isDemo { loadDemo() }
         micMonitor.onChange = { [weak self] running in
-            guard let self, !CommandLine.arguments.contains("--mic-demo") else { return }
+            guard let self, !CommandLine.arguments.contains("--mic-demo"), running != self.mic.isActive else { return }
             self.mic.update(isRunning: running, now: Date())
             DebugTools.log("mic: \(running)")
             self.updateFocusTicker()

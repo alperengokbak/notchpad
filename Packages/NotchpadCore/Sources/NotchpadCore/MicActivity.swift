@@ -21,3 +21,12 @@ public struct MicActivity: Equatable, Sendable {
         since.map { max(0, now.timeIntervalSince($0)) }
     }
 }
+
+public enum MicSignal {
+    /// Is any app recording? Per-process input flags (macOS 14.4+) are exact; a duplex device
+    /// like AirPods "runs" just from playing music, so the device flag is only a fallback.
+    public static func inUse(processesRecording: [Bool]?, deviceRunning: Bool) -> Bool {
+        if let processesRecording { return processesRecording.contains(true) }
+        return deviceRunning
+    }
+}
