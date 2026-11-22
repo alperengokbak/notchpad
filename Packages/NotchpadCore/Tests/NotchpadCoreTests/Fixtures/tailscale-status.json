@@ -1,0 +1,13 @@
+{
+  "BackendState": "Running",
+  "Self": { "HostName": "alperens-mac", "DNSName": "alperens-mac.tail1234.ts.net.", "OS": "macOS",
+            "TailscaleIPs": ["100.64.0.1", "fd7a:115c:a1e0::1"], "Online": true },
+  "Peer": {
+    "nodekey:aaa": { "HostName": "work-laptop", "DNSName": "work-laptop.tail1234.ts.net.", "OS": "windows",
+                     "TailscaleIPs": ["100.64.0.2", "fd7a:115c:a1e0::2"], "Online": true },
+    "nodekey:bbb": { "HostName": "iphone", "DNSName": "iphone.tail1234.ts.net.", "OS": "iOS",
+                     "TailscaleIPs": ["100.64.0.3"], "Online": false },
+    "nodekey:ccc": { "HostName": "", "DNSName": "nas.tail1234.ts.net.", "OS": "linux",
+                     "TailscaleIPs": ["fd7a:115c:a1e0::4"], "Online": true }
+  }
+}

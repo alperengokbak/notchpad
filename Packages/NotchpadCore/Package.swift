@@ -7,6 +7,6 @@ let package = Package(
     products: [.library(name: "NotchpadCore", targets: ["NotchpadCore"])],
     targets: [
         .target(name: "NotchpadCore"),
-        .testTarget(name: "NotchpadCoreTests", dependencies: ["NotchpadCore"]),
+        .testTarget(name: "NotchpadCoreTests", dependencies: ["NotchpadCore"], resources: [.copy("Fixtures")]),
     ]
 )
