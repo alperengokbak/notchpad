@@ -5,8 +5,13 @@ import AppKit
 @MainActor
 final class MouseMonitors {
     var onMouseMoved: ((CGPoint) -> Void)?
+    /// Called while a file is being dragged anywhere on screen (from Finder or any app).
+    var onFileDragMoved: ((CGPoint) -> Void)?
 
     private var tokens: [Any] = []
+    private let dragPasteboard = NSPasteboard(name: .drag)
+    private var changeCountAtMouseDown = 0
+    private var isFileDrag = false
 
     func start() {
         stop()
@@ -18,6 +23,25 @@ final class MouseMonitors {
             MainActor.assumeIsolated { self?.onMouseMoved?(NSEvent.mouseLocation) }
             return event
         }) { tokens.append(l) }
+
+        // A drag that started a new drag pasteboard with file URLs on it is a file drag.
+        if let down = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp], handler: { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.isFileDrag = false
+                if event.type == .leftMouseDown { self.changeCountAtMouseDown = self.dragPasteboard.changeCount }
+            }
+        }) { tokens.append(down) }
+        if let drag = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDragged, handler: { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                if !self.isFileDrag, self.dragPasteboard.changeCount != self.changeCountAtMouseDown,
+                   self.dragPasteboard.types?.contains(.fileURL) == true {
+                    self.isFileDrag = true
+                }
+                if self.isFileDrag { self.onFileDragMoved?(NSEvent.mouseLocation) }
+            }
+        }) { tokens.append(drag) }
     }
 
     func stop() {

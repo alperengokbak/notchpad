@@ -28,6 +28,7 @@ final class NotchWindowController {
             self.sync()
         }
         monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
+        monitors.onFileDragMoved = { [weak self] point in self?.fileDragMoved(to: point) }
         monitors.start()
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                object: nil, queue: .main) { [weak self] _ in
@@ -80,6 +81,18 @@ final class NotchWindowController {
         let zone = machine.isOpen ? openRect : NotchGeometry.hotZone(notch: notch)
         machine.pointer(inside: zone.contains(point), now: ProcessInfo.processInfo.systemUptime)
         sync()
+    }
+
+    /// A file drag coming within 40 pt below the hot zone opens the panel straight away.
+    private func fileDragMoved(to point: CGPoint) {
+        guard !machine.isOpen else { return }
+        var zone = NotchGeometry.hotZone(notch: notch)
+        zone.origin.y -= 40
+        zone.size.height += 40
+        if zone.contains(point) {
+            machine.fileDragNearNotch(now: ProcessInfo.processInfo.systemUptime)
+            sync()
+        }
     }
 
     /// Applies the state machine's decision to the window and model, and runs the
