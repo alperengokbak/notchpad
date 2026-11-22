@@ -21,8 +21,10 @@ public final class TailscaleController: @unchecked Sendable {
     }
 
     public func status() -> TailscaleStatus {
-        guard cliExists(), let result = runner.run(Self.cliPath, ["status", "--json"]) else {
-            return TailscaleStatus(state: .notInstalled, devices: [])
+        guard cliExists() else { return TailscaleStatus(state: .notInstalled, devices: []) }
+        // Installed but it didn't start or didn't answer in time: treat as not connected.
+        guard let result = runner.run(Self.cliPath, ["status", "--json"]) else {
+            return TailscaleStatus(state: .notConnected, devices: [])
         }
         return TailscaleStatus.parse(result.output) ?? TailscaleStatus(state: .notConnected, devices: [])
     }

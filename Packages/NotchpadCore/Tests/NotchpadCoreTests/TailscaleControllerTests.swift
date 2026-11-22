@@ -28,10 +28,11 @@ final class SpyCommands: CommandRunning, @unchecked Sendable {
     #expect(spy.calls.isEmpty)
 }
 
-@Test func launchFailureIsNotInstalled() {
+@Test func launchFailureOrTimeoutWithCLIPresentIsNotConnected() {
+    // A hung or slow Tailscale must not say "isn't installed"; only a missing CLI does.
     let spy = SpyCommands()
     spy.launchFails = true
-    #expect(TailscaleController(runner: spy, cliExists: { true }).status().state == .notInstalled)
+    #expect(TailscaleController(runner: spy, cliExists: { true }).status() == TailscaleStatus(state: .notConnected, devices: []))
 }
 
 @Test func statusRunsStatusJSON() {

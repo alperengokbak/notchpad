@@ -54,6 +54,8 @@ final class AppModel: ObservableObject {
         return TailscaleController(runner: ProcessRunner())
     }()
     private var tailscaleTimer: Timer?
+    /// One status read at a time, so a hung Tailscale can't queue up calls (they'd run after close).
+    private var tailscaleRefresh = SingleFlight()
     private var openTimers: [Timer] = []
 
     init() {
@@ -123,12 +125,15 @@ final class AppModel: ObservableObject {
     }
 
     private func refreshTailscale() {
+        guard tailscaleRefresh.tryStart() else { return }
         DebugTools.log("tailscale refresh")
         let controller = tailscaleController
         tailscaleQueue.async { [weak self] in
             let status = controller.status()
             DispatchQueue.main.async {
-                guard let self, self.tailscaleShowing else { return }
+                guard let self else { return }
+                self.tailscaleRefresh.finish()
+                guard self.tailscaleShowing else { return }
                 self.tailscale = status
                 DebugTools.log("tailscale state: \(status.state)")
             }
