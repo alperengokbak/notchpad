@@ -39,19 +39,27 @@ public enum NotchGeometry {
         CGRect(x: notch.minX - 10, y: notch.minY - 10, width: notch.width + 20, height: notch.height + 10)
     }
 
-    /// Width of the closed-notch strip: 70 pt for each thing it shows (focus timer, microphone).
-    public static func wingWidth(focus: Bool, mic: Bool) -> CGFloat {
-        CGFloat((focus ? 1 : 0) + (mic ? 1 : 0)) * 70
+    /// The black extensions beside the closed notch. Left: focus countdown and microphone (70 pt each),
+    /// then the song's cover (36 pt). Right: the music bars (36 pt).
+    public static func wings(focus: Bool, mic: Bool, music: Bool) -> WingWidths {
+        let left = CGFloat((focus ? 1 : 0) + (mic ? 1 : 0)) * 70 + (music ? 36 : 0)
+        return WingWidths(left: left, right: music ? 36 : 0)
     }
 
-    /// The black extension left of the notch that shows the focus countdown while closed.
-    public static func wingRect(notch: CGRect, width: CGFloat = 70) -> CGRect {
-        CGRect(x: notch.minX - width, y: notch.minY, width: width, height: notch.height)
+    /// Hot zone that also covers the wings when they're showing.
+    public static func hotZone(notch: CGRect, wings: WingWidths) -> CGRect {
+        hotZone(notch: CGRect(x: notch.minX - wings.left, y: notch.minY,
+                              width: notch.width + wings.left + wings.right, height: notch.height))
     }
+}
 
-    /// Hot zone that also covers the countdown extension when it's showing.
-    public static func hotZone(notch: CGRect, wing: CGRect?) -> CGRect {
-        guard let wing else { return hotZone(notch: notch) }
-        return hotZone(notch: notch.union(wing))
+/// Widths of the black extensions left and right of the closed notch.
+public struct WingWidths: Equatable, Sendable {
+    public var left: CGFloat
+    public var right: CGFloat
+
+    public init(left: CGFloat, right: CGFloat) {
+        self.left = left
+        self.right = right
     }
 }

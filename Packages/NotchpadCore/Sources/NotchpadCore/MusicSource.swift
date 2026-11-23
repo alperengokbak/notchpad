@@ -51,6 +51,7 @@ public struct Preferences {
     private let defaults: UserDefaults
     private static let micKey = "showMicIndicator"
     private static let sourceKey = "lastMusicSource"
+    private static let closedMusicKey = "showClosedMusic"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -60,6 +61,12 @@ public struct Preferences {
     public var showMicIndicator: Bool {
         get { defaults.object(forKey: Self.micKey) as? Bool ?? true }
         nonmutating set { defaults.set(newValue, forKey: Self.micKey) }
+    }
+
+    /// Cover and bars beside the closed notch while a song plays. On unless turned off.
+    public var showClosedMusic: Bool {
+        get { defaults.object(forKey: Self.closedMusicKey) as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: Self.closedMusicKey) }
     }
 
     /// The player the Music widget showed last, so its "Open" button opens the right app.

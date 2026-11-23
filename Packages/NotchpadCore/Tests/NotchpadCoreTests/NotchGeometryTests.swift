@@ -38,20 +38,15 @@ private let notch = CGRect(x: 764, y: 1085, width: 200, height: 32)
     #expect(NotchGeometry.hotZone(notch: notch) == CGRect(x: 754, y: 1075, width: 220, height: 42))
 }
 
-@Test func wingSitsLeftOfNotch() {
-    #expect(NotchGeometry.wingRect(notch: notch) == CGRect(x: 694, y: 1085, width: 70, height: 32))
+@Test func wingsAddUpPerSide() {
+    #expect(NotchGeometry.wings(focus: false, mic: false, music: false) == WingWidths(left: 0, right: 0))
+    #expect(NotchGeometry.wings(focus: true, mic: false, music: false) == WingWidths(left: 70, right: 0))
+    #expect(NotchGeometry.wings(focus: false, mic: false, music: true) == WingWidths(left: 36, right: 36))
+    #expect(NotchGeometry.wings(focus: true, mic: true, music: true) == WingWidths(left: 176, right: 36))
 }
 
-@Test func wingOnlyWhenTimerActive() {
-    #expect(NotchGeometry.hotZone(notch: notch, wing: nil) == NotchGeometry.hotZone(notch: notch))
-    let withWing = NotchGeometry.hotZone(notch: notch, wing: NotchGeometry.wingRect(notch: notch))
-    #expect(withWing.minX == 684)
-    #expect(withWing.maxX == NotchGeometry.hotZone(notch: notch).maxX)
-}
-
-@Test func wingWidthGrowsPerSegment() {
-    #expect(NotchGeometry.wingWidth(focus: false, mic: false) == 0)
-    #expect(NotchGeometry.wingWidth(focus: true, mic: false) == 70)
-    #expect(NotchGeometry.wingWidth(focus: false, mic: true) == 70)
-    #expect(NotchGeometry.wingWidth(focus: true, mic: true) == 140)
+@Test func hotZoneCoversBothWings() {
+    #expect(NotchGeometry.hotZone(notch: notch, wings: WingWidths(left: 0, right: 0)) == NotchGeometry.hotZone(notch: notch))
+    #expect(NotchGeometry.hotZone(notch: notch, wings: WingWidths(left: 70, right: 36))
+            == CGRect(x: 684, y: 1075, width: 326, height: 42))
 }

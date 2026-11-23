@@ -47,3 +47,11 @@ public enum MusicState: Equatable, Sendable {
     case idle
     case playing(NowPlaying)
 }
+
+extension MusicState {
+    /// True only while a song is actually playing (not paused, idle or closed).
+    public var isPlaying: Bool {
+        if case .playing(let song) = self { return song.isPlaying }
+        return false
+    }
+}

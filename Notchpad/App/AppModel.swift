@@ -96,7 +96,7 @@ final class AppModel: ObservableObject {
     }
     private let micMonitor = MicMonitor()
     /// Width of the closed-notch strip (0 when nothing to show).
-    var stripWidth: CGFloat { NotchGeometry.wingWidth(focus: focus.isActive, mic: mic.isActive) }
+    var stripWidth: CGFloat { NotchGeometry.wings(focus: focus.isActive, mic: mic.isActive, music: false).left }
     private(set) var lastFocusMinutes = 25
     private var focusTicker: Timer?
     private var askedNotificationPermission = false

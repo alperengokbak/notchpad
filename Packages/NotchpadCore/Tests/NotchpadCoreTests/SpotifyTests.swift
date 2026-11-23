@@ -90,3 +90,23 @@ import Testing
     #expect(!again.showMicIndicator)
     #expect(again.lastMusicSource == .spotify)
 }
+
+@Test func closedMusicPreferenceDefaultsOn() {
+    let suite = "notchpad-tests-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let prefs = Preferences(defaults: defaults)
+    #expect(prefs.showClosedMusic)
+    prefs.showClosedMusic = false
+    #expect(!Preferences(defaults: defaults).showClosedMusic)
+}
+
+@Test func isPlayingOnlyWhenPlaying() {
+    let song = NowPlaying(title: "A", artist: "B", duration: 100, position: 0, isPlaying: true, positionDate: Date())
+    var paused = song
+    paused.isPlaying = false
+    #expect(!MusicState.notRunning.isPlaying)
+    #expect(!MusicState.idle.isPlaying)
+    #expect(!MusicState.playing(paused).isPlaying)
+    #expect(MusicState.playing(song).isPlaying)
+}
