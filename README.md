@@ -11,14 +11,25 @@ The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (down
 ## What's in the panel
 
 - **Music:** the current Apple Music track with its cover, a progress bar, and previous, play/pause and next. Notchpad never starts Music by itself. If Music is closed, there's an "Open Music" button.
-- **Shelf:** drag files onto the notch and they wait there until you drag them out somewhere else. The shelf keeps a link to the original file (no copies) and is still there after a restart. When you drag a file towards the closed notch, the panel opens by itself. Hover a file and click the blue AirDrop icon to send it to your iPhone or another Mac, or right-click the panel for "AirDrop all files".
-- **Reminders:** your overdue and soonest reminders from every list, with a circle to tick them off. Click the Reminders heading to see all of them in the Reminders tab. The Reminders app doesn't need to be open.
+- **Shelf:** drag files onto the notch and they wait there until you drag them out somewhere else. The shelf keeps a link to the original file (no copies) and is still there after a restart. When you drag a file towards the closed notch, the panel opens by itself. Hover a file and click the blue AirDrop icon to send it to your iPhone or another Mac, or right-click the panel for "AirDrop all files". If the tab on screen has no Shelf when you drop a file, the panel switches to a tab that has one.
+- **Reminders:** your overdue and soonest reminders from every list, with a circle to tick them off. Click the Reminders heading to jump to the tab with the full list. The Reminders app doesn't need to be open.
 - **Next:** your next event today, from every calendar the Calendar app shows.
 - **Focus timer:** start a 25 or 50 minute session. When you close the panel, the countdown stays visible on a small black strip left of the notch (red dot for focus, green for a break). When the time is up you hear a sound and get a notification, then you can start a 5 minute break or go again.
 - **Microphone in use:** when any app uses the microphone, a red mic and how long it's been on appear on the strip left of the notch (next to the focus countdown if one is running). Notchpad never listens itself; macOS only tells it the mic is on, not which app.
-- **Tailscale tab:** a third tab with your Tailscale status, a Connect/Disconnect button and your devices. Click a device to copy its Tailscale IP. It uses the command line tool inside the Tailscale app, so it only works if Tailscale is installed. If the Tailscale app isn't running when you click Connect, Notchpad starts it first. It checks every 5 seconds, and only while the tab is open.
+- **Tailscale:** your Tailscale status, a Connect/Disconnect button and your devices. Click a device to copy its Tailscale IP. It uses the command line tool inside the Tailscale app, so it only works if Tailscale is installed. If the Tailscale app isn't running when you click Connect, Notchpad starts it first. It checks every 5 seconds, and only while the Tailscale widget is on screen.
 
-The panel has three tabs at the top left: Home, Reminders and Tailscale. Right-click the open panel for "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+## Tabs and widgets
+
+Each part of the panel is a widget, and you choose which widgets go on which tab. Right-click the open panel and pick "Edit widgets…". In edit mode you can:
+
+- remove a widget with its minus button, or change its size with the arrows button (Small, Medium, Wide or Full, depending on the widget)
+- drag a widget to an empty spot, or onto another widget to swap the two
+- click "Add widget" to open the gallery, search or pick a category, and click a widget to add it to the tab you're on
+- add a tab with +, click the selected tab to rename it, drag tabs to change their order, or delete a tab with its minus button
+
+Click Done when you're finished. You can have up to four tabs, and the same widget can be on more than one tab. The first time you open this version you get the old layout: Home, Reminders and Tailscale. A widget only loads its data while it's on screen, so widgets on other tabs don't slow anything down.
+
+Right-click the open panel for "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
 
 ## Requirements
 
