@@ -15,7 +15,6 @@ The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (down
 - **Reminders:** your overdue and soonest reminders from every list, with a circle to tick them off. Click the Reminders heading to jump to the tab with the full list. The Reminders app doesn't need to be open.
 - **Next:** your next event today, from every calendar the Calendar app shows. At Medium size it lists your next three events today instead of one.
 - **Focus timer:** start a 25 or 50 minute session. When you close the panel, the countdown stays visible on a small black strip left of the notch (red dot for focus, green for a break). When the time is up you hear a sound and get a notification, then you can start a 5 minute break or go again.
-- **Microphone in use:** when any app uses the microphone, a red mic and how long it's been on appear on the strip left of the notch (next to the focus countdown if one is running). Notchpad never listens itself; macOS only tells it the mic is on, not which app. If you don't want it, right-click the open panel and untick "Show microphone indicator". Notchpad then stops watching the microphone completely.
 - **Tailscale:** your Tailscale status, a Connect/Disconnect button and your devices. Click a device to copy its Tailscale IP. It uses the command line tool inside the Tailscale app, so it only works if Tailscale is installed. If the Tailscale app isn't running when you click Connect, Notchpad starts it first. It checks every 5 seconds, and only while the Tailscale widget is on screen.
 
 ## Tabs and widgets
@@ -42,7 +41,7 @@ Click Done when you're finished. You can have up to four tabs, and the same widg
 
 When there's no more room left of the notch, the next tabs go to the right of it. Your layout is saved in `~/Library/Application Support/Notchpad/layout.json`. If that file gets damaged, Notchpad starts with the default layout.
 
-Right-click the open panel for "Show microphone indicator", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+Right-click the open panel for "Edit widgets…", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
 
 ## Requirements
 
