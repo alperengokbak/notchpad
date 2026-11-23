@@ -75,6 +75,9 @@ final class AppModel: ObservableObject {
     private var activeSources: Set<DataSource> = []
     @Published var focus = FocusTimer()
     @Published var mic = MicActivity()
+    /// The microphone indicator is switched off for now: no menu item, no CoreAudio listeners.
+    /// Set to true to bring it back (people then turn it on again from the right-click menu).
+    static let micIndicatorAvailable = false
     /// The red mic beside the notch. Off = no CoreAudio listeners at all.
     @Published var showMicIndicator = true {
         didSet {
@@ -161,7 +164,7 @@ final class AppModel: ObservableObject {
                 if self.neededSources.contains(.reminders) { self.refreshReminders() }
             }
         }
-        observeMusic()
+        if !Self.isDemo { observeMusic() } // demo screenshots never show the real song
         music = isMusicRunning ? .idle : .notRunning
         if let arg = DebugTools.argument(after: "--tab"), let i = layout.tabIndex(matching: arg) {
             selectedTabID = layout.tabs[i].id
@@ -174,7 +177,7 @@ final class AppModel: ObservableObject {
             DebugTools.log("mic: \(running)")
             self.updateFocusTicker()
         }
-        showMicIndicator = preferences.showMicIndicator
+        showMicIndicator = Self.micIndicatorAvailable && preferences.showMicIndicator
         if showMicIndicator { micMonitor.start() }
         if CommandLine.arguments.contains("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
         if let s = DebugTools.argument(after: "--focus-seconds").flatMap(Double.init) {
@@ -573,6 +576,11 @@ extension AppModel {
         events = Array(DemoData.events(now: now).prefix(1))
         calendarAccess = .granted
         music = .notRunning
+        if CommandLine.arguments.contains("--demo-spotify") {
+            musicSource = .spotify
+            music = .playing(DemoData.song(now: now))
+            artwork = DemoData.cover()
+        }
         focus = DemoData.focus(now: now)
         shelf.clear()
         shelf.add(DemoData.files())

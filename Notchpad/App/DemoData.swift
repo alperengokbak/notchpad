@@ -1,7 +1,7 @@
-import Foundation
+import AppKit
 import NotchpadCore
 
-/// Made-up data for `--demo` screenshots and gallery previews. Never his real reminders, events or files.
+/// Made-up data for `--demo` screenshots and gallery previews. Never real reminders, events or files.
 @MainActor
 enum DemoData {
     static func reminders(now: Date) -> [ReminderSummary] {
@@ -39,6 +39,23 @@ enum DemoData {
         var timer = FocusTimer()
         timer.start(.focus, seconds: 18 * 60 + 42, now: now)
         return timer
+    }
+
+    /// A made-up song for `--demo-spotify`.
+    static func song(now: Date) -> NowPlaying {
+        NowPlaying(title: "Late Night Drive", artist: "Demo Artist", duration: 214, position: 83,
+                   isPlaying: true, positionDate: now)
+    }
+
+    /// Plain gradient cover art, drawn here so no real album art is used.
+    static func cover() -> NSImage {
+        NSImage(size: NSSize(width: 300, height: 300), flipped: false) { rect in
+            NSGradient(colors: [NSColor(red: 0.98, green: 0.45, blue: 0.35, alpha: 1),
+                                NSColor(red: 0.55, green: 0.25, blue: 0.75, alpha: 1)])?.draw(in: rect, angle: -45)
+            NSColor(white: 1, alpha: 0.18).setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 70, dy: 70)).fill()
+            return true
+        }
     }
 
     static let tailscale = TailscaleStatus(state: .connected, devices: [

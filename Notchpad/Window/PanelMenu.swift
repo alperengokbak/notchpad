@@ -23,11 +23,13 @@ enum PanelMenu {
             menu.addItem(airdrop)
             menu.addItem(.separator())
         }
-        let mic = NSMenuItem(title: "Show microphone indicator", action: #selector(MenuTarget.toggleMic), keyEquivalent: "")
-        mic.target = MenuTarget.shared
-        mic.state = micShown ? .on : .off
-        MenuTarget.shared.onToggleMic = onToggleMic
-        menu.addItem(mic)
+        if AppModel.micIndicatorAvailable {
+            let mic = NSMenuItem(title: "Show microphone indicator", action: #selector(MenuTarget.toggleMic), keyEquivalent: "")
+            mic.target = MenuTarget.shared
+            mic.state = micShown ? .on : .off
+            MenuTarget.shared.onToggleMic = onToggleMic
+            menu.addItem(mic)
+        }
         let login = NSMenuItem(title: "Launch at login", action: #selector(MenuTarget.toggleLogin), keyEquivalent: "")
         login.target = MenuTarget.shared
         login.state = LoginItem.isEnabled ? .on : .off
