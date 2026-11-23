@@ -20,6 +20,7 @@ struct GalleryView: View {
     }
 
     var body: some View {
+        let _ = DebugTools.log("gallery body")
         let inputs = DemoData.inputs(now: Date())
         HStack(spacing: 0) {
             sidebar.frame(width: 180)

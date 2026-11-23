@@ -207,7 +207,15 @@ extension PanelLayout {
     /// Fixes anything a hand-edited or older file could contain, so the panel never breaks.
     public func validated() -> PanelLayout {
         var fixed: [TabPage] = []
+        var seenTabIDs = Set<UUID>()
+        var seenWidgetIDs = Set<UUID>()
         for var tab in tabs.prefix(Self.maxTabs) {
+            // A copied block keeps its UUID; give repeats fresh ones so every tab and widget is unique.
+            if !seenTabIDs.insert(tab.id).inserted { tab.id = UUID() }
+            for i in tab.widgets.indices where !seenWidgetIDs.insert(tab.widgets[i].id).inserted {
+                tab.widgets[i].id = UUID()
+                seenWidgetIDs.insert(tab.widgets[i].id)
+            }
             var name = String(tab.name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.maxNameLength))
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             let taken = Set(fixed.map { $0.name.lowercased() })

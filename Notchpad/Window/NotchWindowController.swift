@@ -100,7 +100,8 @@ final class NotchWindowController {
         } else {
             panel?.allowsKey = false
             panel?.resignKey()
-            frontAppBeforeEdit?.activate()
+            // Only if Notchpad still has focus: if he switched to another app meanwhile, leave it there.
+            if NSApp.isActive { frontAppBeforeEdit?.activate() }
             frontAppBeforeEdit = nil
         }
         sync()

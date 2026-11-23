@@ -39,9 +39,12 @@ final class GalleryWindowController {
         DebugTools.log("gallery: open")
     }
 
+    /// Drops the window and its SwiftUI view, so a hidden gallery never redraws on model changes.
     func close() {
-        guard let panel, panel.isVisible else { return }
+        guard let panel else { return }
         panel.orderOut(nil)
+        panel.contentView = nil
+        self.panel = nil
         DebugTools.log("gallery: closed")
     }
 

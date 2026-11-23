@@ -76,30 +76,14 @@ struct TabStrip: View {
         let rightStart = panelWidth / 2 + notchSize.width / 2 + Self.notchGap
         let rightEnd = panelWidth - Self.edge - (editing ? controlsWidth + Self.spacing : 0)
         let plusWidth: CGFloat = (editing && tabs.count < PanelLayout.maxTabs) ? 22 : 0
-        var widths = tabs.map { tab -> CGFloat in
+        let widths = tabs.map { tab -> CGFloat in
             let text = tab.id == renamingID ? max(Self.textWidth(draft), 60) : Self.textWidth(tab.name)
             return text + 20
         }
-        // Squeeze every pill evenly if they can't all fit on both sides.
-        let available = (leftEnd - leftStart) + (rightEnd - rightStart) - plusWidth
-            - Self.spacing * CGFloat(max(tabs.count - 1, 0))
-        let total = widths.reduce(0, +)
-        if total > available, total > 0 { widths = widths.map { $0 * available / total } }
-
-        var result: [(midX: CGFloat, width: CGFloat)] = []
-        var x = leftStart
-        var onRight = false
-        for w in widths {
-            if !onRight, x + w > leftEnd { onRight = true; x = rightStart }
-            result.append((x + w / 2, w))
-            x += w + Self.spacing
-        }
-        var plus: CGFloat?
-        if plusWidth > 0 {
-            if !onRight, x + plusWidth > leftEnd { x = rightStart }
-            plus = x + plusWidth / 2
-        }
-        return Slots(tabs: result, plus: plus)
+        let placed = TabStripLayout.place(widths: widths, leftStart: leftStart, leftEnd: leftEnd,
+                                          rightStart: rightStart, rightEnd: rightEnd, plusWidth: plusWidth,
+                                          spacing: Self.spacing)
+        return Slots(tabs: zip(placed.mids, placed.widths).map { (midX: $0, width: $1) }, plus: placed.plusMid)
     }
 
     // MARK: Pills

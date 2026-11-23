@@ -85,3 +85,22 @@ private func shape(_ l: PanelLayout) -> [String] {
     write(#"{"version":1,"tabs":[],"selectedTabID":"\#(UUID())"}"#, to: url)
     #expect(shape(LayoutStore(fileURL: url).load()) == shape(.makeDefault()))
 }
+
+@Test func validatedGivesDuplicateIDsFreshOnes() {
+    let tabID = UUID(), widgetID = UUID()
+    let a = TabPage(id: tabID, name: "A", widgets: [
+        WidgetPlacement(id: widgetID, kind: .music, size: .small, column: 0, half: .top),
+        WidgetPlacement(id: widgetID, kind: .focus, size: .small, column: 0, half: .bottom),
+    ])
+    let b = TabPage(id: tabID, name: "B", widgets: [
+        WidgetPlacement(id: widgetID, kind: .music, size: .small, column: 0, half: .top),
+    ])
+    let l = PanelLayout(tabs: [a, b], selectedTabID: tabID).validated()
+    #expect(l.tabs.count == 2)
+    #expect(Set(l.tabs.map(\.id)).count == 2)
+    let widgetIDs = l.tabs.flatMap(\.widgets).map(\.id)
+    #expect(widgetIDs.count == 3)
+    #expect(Set(widgetIDs).count == 3)
+    #expect(l.tabs[0].id == tabID)
+    #expect(l.selectedTabID == tabID)
+}
