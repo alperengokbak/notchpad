@@ -1,6 +1,6 @@
 import Foundation
 
-/// The song Apple Music has loaded.
+/// The song Apple Music or Spotify has loaded.
 public struct NowPlaying: Equatable, Sendable {
     public var title: String
     public var artist: String
@@ -19,11 +19,19 @@ public struct NowPlaying: Equatable, Sendable {
     /// Parses the `com.apple.Music.playerInfo` notification. Nil when stopped or empty.
     /// The notification has no position, so it starts at 0 until fetched.
     public static func from(playerInfo: [AnyHashable: Any], now: Date) -> NowPlaying? {
+        from(playerInfo: playerInfo, source: .appleMusic, now: now)
+    }
+
+    /// Parses Apple Music's or Spotify's notification. Both send milliseconds for the length
+    /// (Music as "Total Time", Spotify as "Duration"); only Spotify sends the position.
+    public static func from(playerInfo: [AnyHashable: Any], source: MusicSource, now: Date) -> NowPlaying? {
         let state = playerInfo["Player State"] as? String
         guard state != "Stopped", let title = playerInfo["Name"] as? String else { return nil }
-        let ms = (playerInfo["Total Time"] as? NSNumber)?.doubleValue
+        let lengthKey = source == .spotify ? "Duration" : "Total Time"
+        let ms = (playerInfo[lengthKey] as? NSNumber)?.doubleValue
+        let position = (playerInfo["Playback Position"] as? NSNumber)?.doubleValue ?? 0
         return NowPlaying(title: title, artist: playerInfo["Artist"] as? String ?? "",
-                          duration: ms.map { $0 / 1000 }, position: 0,
+                          duration: ms.map { $0 / 1000 }, position: position,
                           isPlaying: state == "Playing", positionDate: now)
     }
 
