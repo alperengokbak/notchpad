@@ -200,3 +200,71 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         return true
     }
 }
+
+// MARK: Repair and tolerant decoding
+
+extension PanelLayout {
+    /// Fixes anything a hand-edited or older file could contain, so the panel never breaks.
+    public func validated() -> PanelLayout {
+        var fixed: [TabPage] = []
+        for var tab in tabs.prefix(Self.maxTabs) {
+            var name = String(tab.name.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.maxNameLength))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let taken = Set(fixed.map { $0.name.lowercased() })
+            if name.isEmpty {
+                var n = 1
+                while taken.contains("tab \(n)") || tabs.contains(where: { $0.name.lowercased() == "tab \(n)" }) { n += 1 }
+                name = "Tab \(n)"
+            }
+            if taken.contains(name.lowercased()) {
+                var n = 2
+                func candidate(_ n: Int) -> String {
+                    let suffix = " \(n)"
+                    return String(name.prefix(Self.maxNameLength - suffix.count)).trimmingCharacters(in: .whitespaces) + suffix
+                }
+                while taken.contains(candidate(n).lowercased()) { n += 1 }
+                name = candidate(n)
+            }
+            tab.name = name
+
+            var kept: [WidgetPlacement] = []
+            for w in tab.widgets where w.kind.sizes.contains(w.size)
+                && !kept.contains(where: { $0.kind == w.kind })
+                && Self.noOverlaps(kept + [w]) {
+                kept.append(w)
+            }
+            tab.widgets = kept
+            fixed.append(tab)
+        }
+        guard !fixed.isEmpty else { return .makeDefault() }
+        var result = PanelLayout(tabs: fixed, selectedTabID: selectedTabID)
+        if !fixed.contains(where: { $0.id == selectedTabID }) { result.selectedTabID = fixed[0].id }
+        return result
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, tabs, selectedTabID }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        tabs = try c.decode([TabPage].self, forKey: .tabs)
+        selectedTabID = (try? c.decode(UUID.self, forKey: .selectedTabID)) ?? tabs.first?.id ?? UUID()
+        version = (try? c.decode(Int.self, forKey: .version)) ?? 1
+    }
+}
+
+extension TabPage {
+    private enum CodingKeys: String, CodingKey { case id, name, widgets }
+
+    /// Skips widgets it can't read (e.g. a kind from a newer version) instead of failing the whole file.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decode(UUID.self, forKey: .id)) ?? UUID()
+        name = (try? c.decode(String.self, forKey: .name)) ?? ""
+        widgets = ((try? c.decode([Lossy<WidgetPlacement>].self, forKey: .widgets)) ?? []).compactMap(\.value)
+    }
+}
+
+private struct Lossy<T: Decodable>: Decodable {
+    let value: T?
+    init(from decoder: Decoder) throws { value = try? T(from: decoder) }
+}
