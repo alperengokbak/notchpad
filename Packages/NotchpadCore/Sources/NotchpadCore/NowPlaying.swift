@@ -55,3 +55,28 @@ extension MusicState {
         return false
     }
 }
+
+/// Which song the cover on screen belongs to. Dropping the cover also forgets its song,
+/// so going back to that song later fetches the cover again.
+public struct CoverCache: Equatable, Sendable {
+    public private(set) var title: String?
+
+    public init() {}
+
+    /// A player notification named this song. True when the cover on screen is for another
+    /// song (or there is none), meaning it should be cleared.
+    public mutating func songChanged(to title: String) -> Bool {
+        guard title != self.title else { return false }
+        self.title = nil
+        return true
+    }
+
+    /// True when a cover for this song isn't on screen yet.
+    public func needsFetch(for title: String?) -> Bool {
+        title != nil && title != self.title
+    }
+
+    public mutating func stored(for title: String?) {
+        self.title = title
+    }
+}

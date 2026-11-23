@@ -144,7 +144,7 @@ final class AppModel: ObservableObject {
             (source, MusicController(source: source, isMusicRunning: { AppModel.isRunning(source) }, runner: AppleScriptRunner()))
         })
     private var musicController: MusicController { musicControllers[musicSource]! }
-    private var artworkTitle: String?
+    private var coverCache = CoverCache()
     private let tailscaleQueue = DispatchQueue(label: "notchpad.tailscale")
     private let tailscaleController: TailscaleController = {
         if let path = DebugTools.argument(after: "--tailscale-fixture") {
@@ -197,6 +197,8 @@ final class AppModel: ObservableObject {
             self.updateFocusTicker()
         }
         showClosedMusic = preferences.showClosedMusic
+        // A song may already be playing at launch; no notification arrives for it until it changes.
+        if showClosedMusic && isMusicRunning { refreshMusic() }
         showMicIndicator = Self.micIndicatorAvailable && preferences.showMicIndicator
         if showMicIndicator { micMonitor.start() }
         if CommandLine.arguments.contains("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
@@ -221,6 +223,8 @@ final class AppModel: ObservableObject {
         openTimers.forEach { $0.invalidate() }
         openTimers.removeAll()
         updateDataSources()
+        // The song may have changed while a tab without the Music widget was open.
+        if showClosedMusic && music.isPlaying && artwork == nil { refreshMusic() }
     }
 
     /// Starts what the visible widgets need and stops the rest. Safe to call any number of times.
@@ -401,7 +405,7 @@ final class AppModel: ObservableObject {
         musicSource = next
         preferences.lastMusicSource = next
         artwork = nil
-        artworkTitle = nil
+        coverCache.stored(for: nil)
         music = isMusicRunning ? .idle : .notRunning
         DebugTools.log("music source: \(next.rawValue)")
     }
@@ -421,7 +425,7 @@ final class AppModel: ObservableObject {
                     guard source == self.musicSource else { return }
                     if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
                     // New song: drop the old cover so neither the panel nor the closed notch shows a stale one.
-                    if let track, track.title != self.artworkTitle { self.artwork = nil }
+                    if let track, self.coverCache.songChanged(to: track.title) { self.artwork = nil }
                     let closedNeedsCover = self.showClosedMusic && !self.isOpen && self.music.isPlaying
                     if (self.neededSources.contains(.music) || closedNeedsCover) && shouldQuery { self.refreshMusic() }
                 }
@@ -439,7 +443,7 @@ final class AppModel: ObservableObject {
                     self.followPlayer()
                     guard source == self.musicSource else { return }
                     self.music = launched ? .idle : .notRunning
-                    if !launched { self.artwork = nil; self.artworkTitle = nil }
+                    if !launched { self.artwork = nil; self.coverCache.stored(for: nil) }
                 }
             }
         }
@@ -451,15 +455,15 @@ final class AppModel: ObservableObject {
         guard isMusicRunning else {
             music = .notRunning
             artwork = nil
-            artworkTitle = nil
+            coverCache.stored(for: nil)
             return
         }
         if music == .notRunning { music = .idle }
         let controller = musicController
-        let knownArtworkTitle = artworkTitle
+        let cache = coverCache
         musicQueue.async { [weak self] in
             let track = controller.fetchNowPlaying(now: Date())
-            let needsArtwork = track != nil && track?.title != knownArtworkTitle
+            let needsArtwork = cache.needsFetch(for: track?.title)
             // Apple Music hands over the image; Spotify gives a web address to download it from.
             let data = needsArtwork
                 ? (controller.fetchArtwork() ?? controller.fetchArtworkURL().flatMap { try? Data(contentsOf: $0) })
@@ -470,16 +474,16 @@ final class AppModel: ObservableObject {
                     // Music quit while we were asking: don't show stale "running" state.
                     self.music = .notRunning
                     self.artwork = nil
-                    self.artworkTitle = nil
+                    self.coverCache.stored(for: nil)
                     return
                 }
                 self.music = track.map { .playing($0) } ?? .idle
                 if needsArtwork {
                     self.artwork = data.flatMap(NSImage.init(data:))
-                    self.artworkTitle = track?.title
+                    self.coverCache.stored(for: track?.title)
                 } else if track == nil {
                     self.artwork = nil
-                    self.artworkTitle = nil
+                    self.coverCache.stored(for: nil)
                 }
             }
         }

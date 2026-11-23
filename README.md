@@ -75,7 +75,7 @@ open build/Build/Products/Debug/Notchpad.app
 
 To run the tests: `swift test --package-path Packages/NotchpadCore`
 
-To make the download zip yourself: `scripts/release.sh`. It builds the app, signs it without a personal certificate, checks that no home-folder path, Team ID or email address is inside, and writes `build/Notchpad-<version>.zip`.
+To make the download zip yourself: `scripts/release.sh`. It builds the app, signs it without a personal certificate, checks that no home-folder path, Team ID, Gmail or iCloud address is inside, and writes `build/Notchpad-<version>.zip`.
 
 ## First launch
 

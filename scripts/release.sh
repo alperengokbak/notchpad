@@ -17,7 +17,7 @@ strip -S -x "$OUT/Notchpad.app/Contents/MacOS/Notchpad" 2>/dev/null
 codesign --force --deep --sign - "$OUT/Notchpad.app"
 
 # Privacy checks.
-if grep -rIl --binary-files=text "/Users/" "$OUT/Notchpad.app" >/dev/null; then
+if grep -rl --binary-files=text "/Users/" "$OUT/Notchpad.app" >/dev/null; then
   echo "STOP: the app contains a /Users/ path:"; grep -rl --binary-files=text "/Users/" "$OUT/Notchpad.app"; exit 1
 fi
 TEAM=$(security find-certificate -c "Apple Development" -p 2>/dev/null \
@@ -25,10 +25,12 @@ TEAM=$(security find-certificate -c "Apple Development" -p 2>/dev/null \
 if [ -n "$TEAM" ] && grep -rl --binary-files=text "$TEAM" "$OUT/Notchpad.app" >/dev/null; then
   echo "STOP: the app contains this Mac's Team ID"; exit 1
 fi
-if grep -rIl --binary-files=text -e "@gmail" -e "@icloud" "$OUT/Notchpad.app" >/dev/null; then
+if grep -rl --binary-files=text -e "@gmail" -e "@icloud" "$OUT/Notchpad.app" >/dev/null; then
   echo "STOP: the app contains an email address"; exit 1
 fi
-if codesign -dv "$OUT/Notchpad.app" 2>&1 | grep -q "TeamIdentifier=[A-Z0-9]"; then
+# Read the signature first: piping straight into grep -q can end in SIGPIPE and wrongly pass.
+SIGNATURE=$(codesign -dv "$OUT/Notchpad.app" 2>&1)
+if grep -q "TeamIdentifier=[A-Z0-9]" <<<"$SIGNATURE"; then
   echo "STOP: the app is signed with a team certificate"; exit 1
 fi
 

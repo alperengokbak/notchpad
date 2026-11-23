@@ -29,3 +29,20 @@ private let t0 = Date(timeIntervalSinceReferenceDate: 0)
     n.isPlaying = false
     #expect(n.position(at: t0.addingTimeInterval(5)) == 10)
 }
+
+@Test func coverComesBackAfterSkippingAwayAndBack() {
+    var cache = CoverCache()
+    cache.stored(for: "A")
+    #expect(!cache.needsFetch(for: "A"))
+    do { let r = cache.songChanged(to: "B"); #expect(r) }   // paused skip to B: the A cover is dropped
+    do { let r = cache.songChanged(to: "A"); #expect(r) }   // back to A: still no cover on screen
+    #expect(cache.needsFetch(for: "A"))      // so playing A again must fetch it
+}
+
+@Test func coverKeptWhileSameSongPlays() {
+    var cache = CoverCache()
+    cache.stored(for: "A")
+    do { let r = cache.songChanged(to: "A"); #expect(!r) }  // play/pause of the same song keeps the cover
+    #expect(!cache.needsFetch(for: "A"))
+    #expect(!cache.needsFetch(for: nil))
+}
