@@ -23,6 +23,8 @@ struct WidgetActions {
 @MainActor
 struct WidgetInputs {
     var music: MusicState
+    /// "Music" or "Spotify", for the "Open …" button.
+    var musicAppName: String
     var artwork: NSImage?
     var now: Date
     var reminders: [ReminderSummary]
@@ -54,7 +56,7 @@ extension AppModel {
         actions.connectTailscale = { [weak self] in self?.connectTailscale($0) }
         actions.copyIP = { [weak self] in self?.copyIP($0) }
         actions.shelfDragActive = { [weak self] in self?.onShelfDragActive?($0) }
-        return WidgetInputs(music: music, artwork: artwork, now: clock,
+        return WidgetInputs(music: music, musicAppName: musicSource.appName, artwork: artwork, now: clock,
                             reminders: reminders, remindersAccess: remindersAccess,
                             pendingReminderIDs: pendingReminderIDs,
                             events: events, calendarAccess: calendarAccess,

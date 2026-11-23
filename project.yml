@@ -23,7 +23,7 @@ targets:
         CFBundleVersion: "1"
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
-        NSAppleEventsUsageDescription: Notchpad shows and controls the song playing in Apple Music.
+        NSAppleEventsUsageDescription: Notchpad shows and controls the song playing in Apple Music or Spotify.
         NSCalendarsFullAccessUsageDescription: Notchpad shows your remaining events for today.
         NSRemindersFullAccessUsageDescription: Notchpad shows your reminders and lets you tick them off.
         NSHumanReadableCopyright: Copyright © 2026 Alperen Gökbak. MIT licence.

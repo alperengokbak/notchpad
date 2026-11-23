@@ -11,6 +11,11 @@ final class AppModel: ObservableObject {
     @Published var notchSize = CGSize(width: 185, height: 32)
     @Published var events: [EventSummary] = []
     @Published var calendarAccess: CalendarAccess = .unknown
+    /// The player the Music widget follows (whichever is playing; otherwise the last one).
+    @Published private(set) var musicSource: MusicSource
+    /// Players that said "Playing" in their last notification.
+    private var playingSources: Set<MusicSource> = []
+    let preferences = Preferences()
     @Published var music: MusicState = .notRunning {
         didSet { if case .playing(let n) = music, n.title != oldValue.title { DebugTools.log("music: \(n.title)") } }
     }
@@ -70,6 +75,22 @@ final class AppModel: ObservableObject {
     private var activeSources: Set<DataSource> = []
     @Published var focus = FocusTimer()
     @Published var mic = MicActivity()
+    /// The red mic beside the notch. Off = no CoreAudio listeners at all.
+    @Published var showMicIndicator = true {
+        didSet {
+            guard showMicIndicator != oldValue else { return }
+            preferences.showMicIndicator = showMicIndicator
+            if showMicIndicator {
+                micMonitor.start()
+                DebugTools.log("mic monitor: on")
+            } else {
+                micMonitor.stop()
+                mic.update(isRunning: false, now: Date())
+                DebugTools.log("mic monitor: off")
+            }
+            updateFocusTicker()
+        }
+    }
     private let micMonitor = MicMonitor()
     /// Width of the closed-notch strip (0 when nothing to show).
     var stripWidth: CGFloat { NotchGeometry.wingWidth(focus: focus.isActive, mic: mic.isActive) }
@@ -99,10 +120,11 @@ final class AppModel: ObservableObject {
     private let calendarReader = CalendarReader()
     private lazy var remindersReader = RemindersReader(store: calendarReader.store)
     private let musicQueue = DispatchQueue(label: "notchpad.music")
-    private let musicController = MusicController(
-        isMusicRunning: { AppModel.musicIsRunning() },
-        runner: AppleScriptRunner())
-    nonisolated static let musicBundleID = "com.apple.Music"
+    private let musicControllers: [MusicSource: MusicController] = Dictionary(uniqueKeysWithValues:
+        MusicSource.allCases.map { source in
+            (source, MusicController(source: source, isMusicRunning: { AppModel.isRunning(source) }, runner: AppleScriptRunner()))
+        })
+    private var musicController: MusicController { musicControllers[musicSource]! }
     private var artworkTitle: String?
     private let tailscaleQueue = DispatchQueue(label: "notchpad.tailscale")
     private let tailscaleController: TailscaleController = {
@@ -125,6 +147,8 @@ final class AppModel: ObservableObject {
             return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("Notchpad/layout.json")
         }()
+        let running = Set(MusicSource.allCases.filter(AppModel.isRunning))
+        musicSource = PlayerFollower.choose(current: Preferences().lastMusicSource ?? .appleMusic, playing: [], running: running)
         layoutStore = LayoutStore(fileURL: layoutURL)
         layout = layoutStore.load()
         if layoutStore.lastLoadFailed { DebugTools.log("layout: unreadable file, using the default") }
@@ -150,7 +174,8 @@ final class AppModel: ObservableObject {
             DebugTools.log("mic: \(running)")
             self.updateFocusTicker()
         }
-        micMonitor.start()
+        showMicIndicator = preferences.showMicIndicator
+        if showMicIndicator { micMonitor.start() }
         if CommandLine.arguments.contains("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
         if let s = DebugTools.argument(after: "--focus-seconds").flatMap(Double.init) {
             focus.start(.focus, seconds: s, now: Date())
@@ -333,39 +358,60 @@ final class AppModel: ObservableObject {
     }
 
     func openMusic() {
-        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.musicBundleID) {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: musicSource.bundleID) {
             NSWorkspace.shared.openApplication(at: url, configuration: .init())
         }
     }
 
-    private var isMusicRunning: Bool { Self.musicIsRunning() }
+    private var isMusicRunning: Bool { Self.isRunning(musicSource) }
 
-    nonisolated static func musicIsRunning() -> Bool {
-        MusicController.isRunning(among: NSRunningApplication.runningApplications(withBundleIdentifier: musicBundleID)
+    nonisolated static func isRunning(_ source: MusicSource) -> Bool {
+        MusicController.isRunning(source, among: NSRunningApplication.runningApplications(withBundleIdentifier: source.bundleID)
             .map { ($0.bundleIdentifier, $0.isTerminated) })
     }
 
+    /// Switches the widget to whichever player is playing (or the one still open).
+    private func followPlayer() {
+        let running = Set(MusicSource.allCases.filter(Self.isRunning))
+        let next = PlayerFollower.choose(current: musicSource, playing: playingSources.intersection(running), running: running)
+        guard next != musicSource else { return }
+        musicSource = next
+        preferences.lastMusicSource = next
+        artwork = nil
+        artworkTitle = nil
+        music = isMusicRunning ? .idle : .notRunning
+        DebugTools.log("music source: \(next.rawValue)")
+    }
+
     private func observeMusic() {
-        DistributedNotificationCenter.default().addObserver(
-            forName: NSNotification.Name("com.apple.Music.playerInfo"), object: nil, queue: .main
-        ) { [weak self] note in
-            let info = note.userInfo ?? [:]
-            let track = NowPlaying.from(playerInfo: info, now: Date())
-            let shouldQuery = MusicController.shouldQuery(afterPlayerInfo: info)
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
-                if self.neededSources.contains(.music) && shouldQuery { self.refreshMusic() }
+        for source in MusicSource.allCases {
+            DistributedNotificationCenter.default().addObserver(
+                forName: NSNotification.Name(source.notificationName), object: nil, queue: .main
+            ) { [weak self] note in
+                let info = note.userInfo ?? [:]
+                let track = NowPlaying.from(playerInfo: info, source: source, now: Date())
+                let shouldQuery = MusicController.shouldQuery(afterPlayerInfo: info)
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    if track?.isPlaying == true { self.playingSources.insert(source) } else { self.playingSources.remove(source) }
+                    self.followPlayer()
+                    guard source == self.musicSource else { return }
+                    if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
+                    if self.neededSources.contains(.music) && shouldQuery { self.refreshMusic() }
+                }
             }
         }
         let ws = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
             ws.addObserver(forName: name, object: nil, queue: .main) { [weak self] note in
                 let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-                guard app?.bundleIdentifier == AppModel.musicBundleID else { return }
+                guard let source = MusicSource.allCases.first(where: { $0.bundleID == app?.bundleIdentifier }) else { return }
                 let launched = name == NSWorkspace.didLaunchApplicationNotification
                 MainActor.assumeIsolated {
                     guard let self else { return }
+                    if !launched { self.playingSources.remove(source) }
+                    self.followPlayer()
+                    guard source == self.musicSource else { return }
                     self.music = launched ? .idle : .notRunning
                     if !launched { self.artwork = nil; self.artworkTitle = nil }
                 }
@@ -388,9 +434,12 @@ final class AppModel: ObservableObject {
         musicQueue.async { [weak self] in
             let track = controller.fetchNowPlaying(now: Date())
             let needsArtwork = track != nil && track?.title != knownArtworkTitle
-            let data = needsArtwork ? controller.fetchArtwork() : nil
+            // Apple Music hands over the image; Spotify gives a web address to download it from.
+            let data = needsArtwork
+                ? (controller.fetchArtwork() ?? controller.fetchArtworkURL().flatMap { try? Data(contentsOf: $0) })
+                : nil
             DispatchQueue.main.async {
-                guard let self else { return }
+                guard let self, controller.source == self.musicSource else { return }
                 guard self.isMusicRunning else {
                     // Music quit while we were asking: don't show stale "running" state.
                     self.music = .notRunning

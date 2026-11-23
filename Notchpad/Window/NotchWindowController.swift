@@ -76,6 +76,8 @@ final class NotchWindowController {
             let host = PanelHostingView(rootView: NotchRootView(model: model))
             host.shelf = model.shelf
             host.isEditing = { [weak model] in model?.isEditing ?? false }
+            host.micShown = { [weak model] in model?.showMicIndicator ?? true }
+            host.onToggleMic = { [weak model] in model?.showMicIndicator.toggle() }
             host.onEditWidgets = { [weak model] in
                 guard let model else { return }
                 if model.isEditing { model.endEditing() } else { model.beginEditing() }
@@ -174,9 +176,12 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     weak var shelf: ShelfStore?
     var isEditing: () -> Bool = { false }
     var onEditWidgets: () -> Void = {}
+    var micShown: () -> Bool = { true }
+    var onToggleMic: () -> Void = {}
 
     override func rightMouseDown(with event: NSEvent) {
-        NSMenu.popUpContextMenu(PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets),
+        NSMenu.popUpContextMenu(PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets,
+                                               micShown: micShown(), onToggleMic: onToggleMic),
                                 with: event, for: self)
     }
 

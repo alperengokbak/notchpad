@@ -25,7 +25,7 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Notchpad shows and controls the song playing in Apple Music.</string>
+	<string>Notchpad shows and controls the song playing in Apple Music or Spotify.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Notchpad shows your remaining events for today.</string>
 	<key>NSHumanReadableCopyright</key>

@@ -4,7 +4,8 @@ import NotchpadCore
 /// Right-click menu on the open panel.
 @MainActor
 enum PanelMenu {
-    static func make(shelf: ShelfStore?, editing: Bool, onEditWidgets: @escaping () -> Void) -> NSMenu {
+    static func make(shelf: ShelfStore?, editing: Bool, onEditWidgets: @escaping () -> Void,
+                     micShown: Bool, onToggleMic: @escaping () -> Void) -> NSMenu {
         let menu = NSMenu()
         let edit = NSMenuItem(title: editing ? "Done editing" : "Edit widgets…",
                               action: #selector(MenuTarget.editWidgets), keyEquivalent: "")
@@ -22,6 +23,11 @@ enum PanelMenu {
             menu.addItem(airdrop)
             menu.addItem(.separator())
         }
+        let mic = NSMenuItem(title: "Show microphone indicator", action: #selector(MenuTarget.toggleMic), keyEquivalent: "")
+        mic.target = MenuTarget.shared
+        mic.state = micShown ? .on : .off
+        MenuTarget.shared.onToggleMic = onToggleMic
+        menu.addItem(mic)
         let login = NSMenuItem(title: "Launch at login", action: #selector(MenuTarget.toggleLogin), keyEquivalent: "")
         login.target = MenuTarget.shared
         login.state = LoginItem.isEnabled ? .on : .off
@@ -39,6 +45,11 @@ final class MenuTarget: NSObject {
     static let shared = MenuTarget()
     weak var shelf: ShelfStore?
     var onEditWidgets: (() -> Void)?
+    var onToggleMic: (() -> Void)?
+
+    @objc func toggleMic() {
+        onToggleMic?()
+    }
 
     @objc func editWidgets() {
         onEditWidgets?()

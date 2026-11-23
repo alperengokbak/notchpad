@@ -68,7 +68,7 @@ enum DemoData {
     }()
 
     static func inputs(now: Date) -> WidgetInputs {
-        WidgetInputs(music: .notRunning, artwork: nil, now: now,
+        WidgetInputs(music: .notRunning, musicAppName: "Music", artwork: nil, now: now,
                      reminders: reminders(now: now), remindersAccess: .granted, pendingReminderIDs: [],
                      events: events(now: now), calendarAccess: .granted,
                      focus: focus(now: now), lastFocusMinutes: 25,

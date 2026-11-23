@@ -4,30 +4,46 @@ import NotchpadCore
 
 /// Tells Notchpad when any app starts or stops using the default microphone.
 /// Event-driven (CoreAudio listeners), no polling. Notchpad never opens the mic itself,
-/// so no permission is needed.
+/// so no permission is needed. `stop()` removes every listener (indicator turned off).
 @MainActor
 final class MicMonitor {
     var onChange: ((Bool) -> Void)?
     private var device = AudioDeviceID(0)
     private var watched: Set<AudioDeviceID> = []
     private var watchedProcesses: Set<AudioObjectID> = []
+    /// Every listener added, so `stop()` can remove them all.
+    private var listeners: [(object: AudioObjectID, address: AudioObjectPropertyAddress, block: AudioObjectPropertyListenerBlock)] = []
+
+    /// Adds a CoreAudio listener on the main queue and remembers it.
+    private func listen(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector, _ handler: @escaping @MainActor () -> Void) {
+        var addr = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal,
+                                              mElement: kAudioObjectPropertyElementMain)
+        let block: AudioObjectPropertyListenerBlock = { _, _ in MainActor.assumeIsolated { handler() } }
+        if AudioObjectAddPropertyListenerBlock(object, &addr, .main, block) == noErr {
+            listeners.append((object, addr, block))
+        }
+    }
+
+    /// Removes every listener. Nothing runs until `start()` is called again.
+    func stop() {
+        for l in listeners {
+            var addr = l.address
+            AudioObjectRemovePropertyListenerBlock(l.object, &addr, .main, l.block)
+        }
+        listeners.removeAll()
+        watched.removeAll()
+        watchedProcesses.removeAll()
+        device = 0
+    }
 
     func start() {
-        var addr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultInputDevice,
-                                              mScope: kAudioObjectPropertyScopeGlobal,
-                                              mElement: kAudioObjectPropertyElementMain)
-        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, .main) { [weak self] _, _ in
-            MainActor.assumeIsolated { self?.followDefaultDevice() }
-        }
+        guard listeners.isEmpty else { return }
+        let system = AudioObjectID(kAudioObjectSystemObject)
+        listen(system, kAudioHardwarePropertyDefaultInputDevice) { [weak self] in self?.followDefaultDevice() }
         if #available(macOS 14.4, *) {
             // Exact answer: which processes are recording. Needed because a duplex device
             // (AirPods, USB headset) "runs" just from playing music.
-            var list = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyProcessObjectList,
-                                                  mScope: kAudioObjectPropertyScopeGlobal,
-                                                  mElement: kAudioObjectPropertyElementMain)
-            AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &list, .main) { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.followProcesses() }
-            }
+            listen(system, kAudioHardwarePropertyProcessObjectList) { [weak self] in self?.followProcesses() }
             followProcesses()
         }
         followDefaultDevice()
@@ -37,12 +53,7 @@ final class MicMonitor {
     private func followProcesses() {
         for process in Self.processObjects() where !watchedProcesses.contains(process) {
             watchedProcesses.insert(process)
-            var addr = AudioObjectPropertyAddress(mSelector: kAudioProcessPropertyIsRunningInput,
-                                                  mScope: kAudioObjectPropertyScopeGlobal,
-                                                  mElement: kAudioObjectPropertyElementMain)
-            AudioObjectAddPropertyListenerBlock(process, &addr, .main) { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.report() }
-            }
+            listen(process, kAudioProcessPropertyIsRunningInput) { [weak self] in self?.report() }
         }
         report()
     }
@@ -52,12 +63,7 @@ final class MicMonitor {
         device = Self.defaultInputDevice()
         if device != 0, !watched.contains(device) {
             watched.insert(device)
-            var addr = AudioObjectPropertyAddress(mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
-                                                  mScope: kAudioObjectPropertyScopeGlobal,
-                                                  mElement: kAudioObjectPropertyElementMain)
-            AudioObjectAddPropertyListenerBlock(device, &addr, .main) { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.report() }
-            }
+            listen(device, kAudioDevicePropertyDeviceIsRunningSomewhere) { [weak self] in self?.report() }
         }
         report()
     }

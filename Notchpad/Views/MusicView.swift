@@ -2,13 +2,15 @@ import AppKit
 import NotchpadCore
 import SwiftUI
 
-/// Left column, top: Apple Music mini player.
+/// Mini player for Apple Music or Spotify.
 struct MusicView: View {
     let state: MusicState
     let artwork: NSImage?
     let now: Date
     let onCommand: (MusicCommand) -> Void
     let onOpenMusic: () -> Void
+    /// "Music" or "Spotify".
+    var appName = "Music"
     /// Medium size: larger artwork, progress and controls under it across the full width.
     var large = false
 
@@ -42,7 +44,7 @@ struct MusicView: View {
             if let track {
                 Text(track.artist).font(.system(size: 12)).foregroundStyle(Color(white: 0.6)).lineLimit(1)
             } else if state == .notRunning {
-                Button("Open Music", action: onOpenMusic).buttonStyle(.plain)
+                Button("Open \(appName)", action: onOpenMusic).buttonStyle(.plain)
                     .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(white: 0.75))
             }
         }
