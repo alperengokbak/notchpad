@@ -184,21 +184,24 @@ final class AppModel: ObservableObject {
             var launchedTailscale = false
             let ok = on
                 ? controller.connect(
-                    isAppRunning: { !NSRunningApplication.runningApplications(withBundleIdentifier: "io.tailscale.ipn.macos").isEmpty },
+                    isAppRunning: {
+                        TailscaleController.appBundleIDs.contains { !NSRunningApplication.runningApplications(withBundleIdentifier: $0).isEmpty }
+                    },
                     launchApp: {
                         DebugTools.log("tailscale: starting the app")
                         launchedTailscale = true
                         // Start it in the background: never take focus from the app he's using.
                         let config = NSWorkspace.OpenConfiguration()
                         config.activates = false
-                        let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "io.tailscale.ipn.macos")
+                        let url = TailscaleController.appBundleIDs.lazy
+                            .compactMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }.first
                             ?? URL(fileURLWithPath: "/Applications/Tailscale.app")
                         NSWorkspace.shared.openApplication(at: url, configuration: config)
                     },
                     sleep: { Thread.sleep(forTimeInterval: $0) })
                 : controller.setConnected(false)
             DebugTools.log("tailscale \(on ? "up" : "down") ok=\(ok)")
-            if launchedTailscale, let previousFront, previousFront.bundleIdentifier != "io.tailscale.ipn.macos" {
+            if launchedTailscale, let previousFront, !TailscaleController.isTailscaleApp(previousFront.bundleIdentifier) {
                 // Give focus back to the app he was using.
                 Thread.sleep(forTimeInterval: 0.5)
                 previousFront.activate()

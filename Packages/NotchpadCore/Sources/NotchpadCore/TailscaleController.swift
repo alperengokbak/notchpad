@@ -8,6 +8,12 @@ public protocol CommandRunning: Sendable {
 /// Talks to the command-line tool inside Tailscale.app. Call it off the main thread.
 public final class TailscaleController: @unchecked Sendable {
     public static let cliPath = "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+    /// App Store version and the standalone download use different bundle IDs.
+    public static let appBundleIDs = ["io.tailscale.ipn.macos", "io.tailscale.ipn.macsys"]
+
+    public static func isTailscaleApp(_ bundleID: String?) -> Bool {
+        bundleID.map(appBundleIDs.contains) ?? false
+    }
 
     private let runner: CommandRunning
     private let cliExists: () -> Bool

@@ -120,3 +120,10 @@ final class StartingTailscale: CommandRunning, @unchecked Sendable {
     #expect(slept == 10)
     #expect(!runner.calls.contains(["up"]))
 }
+
+@Test func recognisesBothTailscaleVersions() {
+    #expect(TailscaleController.isTailscaleApp("io.tailscale.ipn.macos"))   // App Store
+    #expect(TailscaleController.isTailscaleApp("io.tailscale.ipn.macsys"))  // standalone download
+    #expect(!TailscaleController.isTailscaleApp("dev.warp.Warp-Stable"))
+    #expect(!TailscaleController.isTailscaleApp(nil))
+}
