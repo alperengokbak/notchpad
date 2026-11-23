@@ -4,7 +4,7 @@ import AppKit
 /// `--force-open` keeps the panel open, `--snapshot <path>` saves the panel as a PNG and quits,
 /// `--log-state` prints "open"/"closed" to stdout on every change.
 /// Layout checks: `--layout-file <path>` (never touches the real layout), `--tab <name or number>`,
-/// `--drop-file <path>`, `--widget-sheet <png>`.
+/// `--drop-file <path>`, `--widget-sheet <png>`, `--edit`, `--gallery`, `--snapshot-gallery <png>`.
 enum DebugTools {
     static func argument(after flag: String) -> String? {
         let args = CommandLine.arguments

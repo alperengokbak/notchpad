@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import NotchpadCore
 import SwiftUI
 
@@ -14,6 +15,8 @@ final class NotchWindowController {
     private var openRect: CGRect = .zero
     /// The app that was in front before edit mode took focus; it gets focus back on Done.
     private var frontAppBeforeEdit: NSRunningApplication?
+    private lazy var gallery = GalleryWindowController(model: model)
+    private var galleryWatch: AnyCancellable?
 
     var onOpen: (() -> Void)?
     var onClose: (() -> Void)?
@@ -30,6 +33,9 @@ final class NotchWindowController {
             self.sync()
         }
         model.onEditingChanged = { [weak self] on in self?.setEditing(on) }
+        galleryWatch = model.$showGallery.removeDuplicates().sink { [weak self] show in
+            DispatchQueue.main.async { self?.setGalleryVisible(show) }
+        }
         monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
         monitors.onFileDragMoved = { [weak self] point in self?.fileDragMoved(to: point) }
         monitors.start()
@@ -100,8 +106,18 @@ final class NotchWindowController {
         sync()
     }
 
-    /// The open panel's frame on screen (for placing the gallery under it).
-    var panelFrame: CGRect { openRect }
+    private func setGalleryVisible(_ show: Bool) {
+        if show, model.isEditing {
+            let level = NSWindow.Level(rawValue: (panel?.level.rawValue ?? NSWindow.Level.floating.rawValue) - 1)
+            gallery.show(below: openRect, level: level)
+        } else {
+            gallery.close()
+            if model.isEditing { panel?.makeKey() }
+        }
+    }
+
+    /// For `--snapshot-gallery`: the gallery's content view.
+    var galleryContentView: NSView? { gallery.contentView }
 
     /// For `--snapshot`: the panel's content view.
     var contentView: NSView? { panel?.contentView }

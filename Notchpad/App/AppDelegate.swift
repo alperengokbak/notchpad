@@ -18,6 +18,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.start()
         windowController = controller
         if CommandLine.arguments.contains("--edit") { model.beginEditing() }
+        if CommandLine.arguments.contains("--gallery") {
+            model.beginEditing()
+            model.showGallery = true
+        }
+        if let path = DebugTools.argument(after: "--snapshot-gallery") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                if let view = controller.galleryContentView { DebugTools.snapshot(view, to: path) }
+                NSApp.terminate(nil)
+            }
+        }
         if let path = DebugTools.argument(after: "--drop-file") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [model] in model.dropFiles([URL(fileURLWithPath: path)]) }
         }
