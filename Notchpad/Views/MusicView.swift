@@ -9,22 +9,41 @@ struct MusicView: View {
     let now: Date
     let onCommand: (MusicCommand) -> Void
     let onOpenMusic: () -> Void
+    /// Medium size: larger artwork, progress and controls under it across the full width.
+    var large = false
 
     private var track: NowPlaying? { if case .playing(let n) = state { n } else { nil } }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            cover
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track?.title ?? "Not playing").font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                if let track {
-                    Text(track.artist).font(.system(size: 12)).foregroundStyle(Color(white: 0.6)).lineLimit(1)
-                } else if state == .notRunning {
-                    Button("Open Music", action: onOpenMusic).buttonStyle(.plain)
-                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(white: 0.75))
+        if large {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 12) {
+                    cover
+                    titles
                 }
-                progress.padding(.top, 6)
-                controls.padding(.top, 6)
+                progress
+                controls.frame(maxWidth: .infinity)
+            }
+        } else {
+            HStack(alignment: .top, spacing: 12) {
+                cover
+                VStack(alignment: .leading, spacing: 2) {
+                    titles
+                    progress.padding(.top, 4)
+                    controls.padding(.top, 2)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var titles: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(track?.title ?? "Not playing").font(.system(size: 13, weight: .semibold)).lineLimit(large ? 2 : 1)
+            if let track {
+                Text(track.artist).font(.system(size: 12)).foregroundStyle(Color(white: 0.6)).lineLimit(1)
+            } else if state == .notRunning {
+                Button("Open Music", action: onOpenMusic).buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Color(white: 0.75))
             }
         }
     }
@@ -38,7 +57,7 @@ struct MusicView: View {
                     .overlay(Image(systemName: "music.note").font(.system(size: 22)).foregroundStyle(Color(white: 0.45)))
             }
         }
-        .frame(width: 64, height: 64)
+        .frame(width: large ? 76 : 64, height: large ? 76 : 64)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 

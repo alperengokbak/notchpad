@@ -2,11 +2,13 @@ import AppKit
 import NotchpadCore
 import SwiftUI
 
-/// Left column, under the player: files waiting to be dragged out.
+/// Files waiting to be dragged out. Small = one scrolling row (today's Home); bigger sizes = a grid.
 struct ShelfView: View {
     @ObservedObject var store: ShelfStore
     let isDropTargeted: Bool
     let onDragActive: (Bool) -> Void
+    var asGrid = false
+    var iconScale: CGFloat = 1
 
     var body: some View {
         ZStack {
@@ -15,6 +17,15 @@ struct ShelfView: View {
                               style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
             if store.items.isEmpty {
                 Text("Drop files here").font(.system(size: 11)).foregroundStyle(Color(white: 0.47))
+            } else if asGrid {
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 54 * iconScale), spacing: 8)], spacing: 8) {
+                        ForEach(store.items) { item in
+                            ShelfItemView(item: item, store: store, onDragActive: onDragActive, scale: iconScale)
+                        }
+                    }
+                    .padding(10)
+                }
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -24,7 +35,8 @@ struct ShelfView: View {
                 }
             }
         }
-        .frame(height: 62)
+        .frame(height: asGrid ? nil : 62)
+        .frame(maxHeight: asGrid ? .infinity : nil)
     }
 }
 
@@ -32,6 +44,7 @@ private struct ShelfItemView: View {
     let item: ShelfItem
     @ObservedObject var store: ShelfStore
     let onDragActive: (Bool) -> Void
+    var scale: CGFloat = 1
     @State private var hovering = false
 
     var body: some View {
@@ -46,9 +59,9 @@ private struct ShelfItemView: View {
                         .foregroundStyle(Color(white: 0.5))
                 }
             }
-            .frame(width: 30, height: 36)
+            .frame(width: 30 * scale, height: 36 * scale)
             Text(item.name).font(.system(size: 9)).foregroundStyle(Color(white: 0.8))
-                .lineLimit(1).truncationMode(.middle).frame(width: 44)
+                .lineLimit(1).truncationMode(.middle).frame(width: 44 * scale)
         }
         .opacity(url == nil ? 0.45 : 1)
         .overlay {

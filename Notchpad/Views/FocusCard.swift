@@ -3,35 +3,37 @@ import SwiftUI
 
 /// Right column, bottom: start 25/50, pause/stop while running, break/again when done.
 struct FocusCard: View {
-    @ObservedObject var model: AppModel
+    let inputs: WidgetInputs
+    private var focus: FocusTimer { inputs.focus }
+    private var actions: WidgetActions { inputs.actions }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            switch model.focus.phase {
+            switch focus.phase {
             case .idle:
                 label("FOCUS", dot: nil)
                 HStack(spacing: 6) {
-                    pill("25") { model.startFocus(.focus, minutes: 25) }
-                    pill("50") { model.startFocus(.focus, minutes: 50) }
+                    pill("25") { actions.startFocus(.focus, 25) }
+                    pill("50") { actions.startFocus(.focus, 50) }
                 }
             case .running(let kind, _), .paused(let kind, _):
                 label(kind == .focus ? "FOCUS" : "BREAK", dot: kind == .focus ? .red : .green)
-                Text(FocusTimer.clock(model.focus.remaining(now: model.clock) ?? 0))
+                Text(FocusTimer.clock(focus.remaining(now: inputs.now) ?? 0))
                     .font(.system(size: 22, weight: .semibold).monospacedDigit())
-                    .opacity(model.focus.isPaused ? 0.5 : 1)
+                    .opacity(focus.isPaused ? 0.5 : 1)
                 HStack(spacing: 14) {
-                    icon(model.focus.isPaused ? "play.fill" : "pause.fill") { model.togglePauseFocus() }
-                    icon("stop.fill") { model.stopFocus() }
+                    icon(focus.isPaused ? "play.fill" : "pause.fill") { actions.togglePauseFocus() }
+                    icon("stop.fill") { actions.stopFocus() }
                 }
             case .done(let kind):
                 HStack {
                     Text("Done").font(.system(size: 13, weight: .semibold))
                     Spacer()
-                    icon("xmark") { model.stopFocus() }
+                    icon("xmark") { actions.stopFocus() }
                 }
                 HStack(spacing: 6) {
-                    if kind == .focus { pill("5 min break") { model.startFocus(.rest, minutes: 5) } }
-                    pill("Again") { model.startFocus(.focus, minutes: model.lastFocusMinutes) }
+                    if kind == .focus { pill("5 min break") { actions.startFocus(.rest, 5) } }
+                    pill("Again") { actions.startFocus(.focus, inputs.lastFocusMinutes) }
                 }
             }
         }

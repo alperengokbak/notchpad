@@ -239,6 +239,11 @@ final class AppModel: ObservableObject {
         musicQueue.async { controller.send(command) }
     }
 
+    /// The Reminders heading: jump to the full Reminders list.
+    func openFullReminders() {
+        selectedTab = .reminders
+    }
+
     func openMusic() {
         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: Self.musicBundleID) {
             NSWorkspace.shared.openApplication(at: url, configuration: .init())
@@ -425,36 +430,14 @@ private struct FixtureRunner: CommandRunning {
 
 extension AppModel {
     fileprivate func loadDemo() {
-        let cal = Calendar.current
         let now = Date()
-        let today = cal.startOfDay(for: now)
-        func day(_ d: Int) -> Date { cal.date(byAdding: .day, value: d, to: today)! }
-        func item(_ title: String, _ due: Date?, list: String = "Personal", order: Int = 0) -> ReminderSummary {
-            ReminderSummary(id: title, title: title, listID: list, listTitle: list, listOrder: order, due: due, dueHasTime: false)
-        }
-        reminders = [
-            item("Renew library books", day(-1)),
-            item("Submit lab report", day(0)),
-            item("Call the dentist", day(1)),
-            item("Pay phone bill", day(3)),
-            item("Plan weekend trip", nil),
-            item("Milk", nil, list: "Shopping", order: 1),
-        ]
+        reminders = DemoData.reminders(now: now)
         remindersAccess = .granted
-        let start = cal.date(bySettingHour: 15, minute: 0, second: 0, of: today)!
-        events = [EventSummary(id: "demo", title: "Networking lecture", start: start,
-                               end: start.addingTimeInterval(7200), isAllDay: false,
-                               red: 0.04, green: 0.52, blue: 1)]
+        events = Array(DemoData.events(now: now).prefix(1))
         calendarAccess = .granted
         music = .notRunning
-        focus.start(.focus, seconds: 18 * 60 + 42, now: now)
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo")
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let files = ["Lecture notes.pdf", "Lab screenshot.png"].map { dir.appendingPathComponent($0) }
-        for f in files where !FileManager.default.fileExists(atPath: f.path) {
-            FileManager.default.createFile(atPath: f.path, contents: Data("demo".utf8))
-        }
+        focus = DemoData.focus(now: now)
         shelf.clear()
-        shelf.add(files)
+        shelf.add(DemoData.files())
     }
 }

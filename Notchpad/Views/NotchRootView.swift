@@ -63,7 +63,7 @@ struct NotchRootView: View {
         case .home:
             columns
         case .reminders:
-            RemindersTab(model: model)
+            RemindersTab(inputs: model.widgetInputs(dropTargeted: dropTargeted))
         case .tailscale:
             TailscaleView(status: model.tailscale, busy: model.tailscaleBusy, message: model.tailscaleMessage,
                           copiedDeviceID: model.copiedDeviceID,
@@ -90,13 +90,13 @@ struct NotchRootView: View {
         }
     }
     private var middleColumn: some View {
-        RemindersSection(model: model)
+        RemindersSection(inputs: model.widgetInputs(dropTargeted: dropTargeted))
     }
     private var rightColumn: some View {
         VStack(alignment: .leading, spacing: 10) {
             NextEventView(events: model.events, access: model.calendarAccess)
             Rectangle().fill(Color(white: 0.12)).frame(height: 1)
-            FocusCard(model: model)
+            FocusCard(inputs: model.widgetInputs(dropTargeted: dropTargeted))
             Spacer(minLength: 0)
         }
     }

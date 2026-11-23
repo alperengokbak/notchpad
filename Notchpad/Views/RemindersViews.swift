@@ -43,11 +43,11 @@ private func accessOff() -> some View {
 
 /// Home, middle column: the reminders due soonest. Clicking the header opens the Reminders tab.
 struct RemindersSection: View {
-    @ObservedObject var model: AppModel
+    let inputs: WidgetInputs
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Button { model.selectedTab = .reminders } label: {
+            Button { inputs.actions.openFullReminders() } label: {
                 HStack(spacing: 3) {
                     Text("REMINDERS").font(.system(size: 10, weight: .medium)).tracking(0.6)
                     Image(systemName: "chevron.right").font(.system(size: 8, weight: .bold))
@@ -55,20 +55,20 @@ struct RemindersSection: View {
                 .foregroundStyle(Color(white: 0.55)).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            switch model.remindersAccess {
+            switch inputs.remindersAccess {
             case .denied: accessOff()
             case .unknown: EmptyView()
             case .granted:
-                let items = ReminderLogic.homeList(model.reminders, now: model.clock, calendar: .current)
+                let items = ReminderLogic.homeList(inputs.reminders, now: inputs.now, calendar: .current)
                 if items.isEmpty {
                     Text("No reminders due").font(.system(size: 12)).foregroundStyle(Color(white: 0.6))
                 } else {
                     ForEach(items) { r in
                         ReminderRow(reminder: r,
-                                    label: ReminderLogic.dueLabel(r, now: model.clock, calendar: .current),
-                                    isOverdue: ReminderLogic.isOverdue(r, now: model.clock, calendar: .current),
-                                    pending: model.pendingReminderIDs.contains(r.id),
-                                    onTick: { model.toggleReminder(r.id) })
+                                    label: ReminderLogic.dueLabel(r, now: inputs.now, calendar: .current),
+                                    isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
+                                    pending: inputs.pendingReminderIDs.contains(r.id),
+                                    onTick: { inputs.actions.tickReminder(r.id) })
                     }
                 }
             }
@@ -78,7 +78,7 @@ struct RemindersSection: View {
 
 /// The Reminders tab: every open reminder, grouped by list.
 struct RemindersTab: View {
-    @ObservedObject var model: AppModel
+    let inputs: WidgetInputs
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -97,20 +97,20 @@ struct RemindersTab: View {
                 }
                 .buttonStyle(.plain)
             }
-            if model.remindersAccess == .denied {
+            if inputs.remindersAccess == .denied {
                 accessOff()
             } else {
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 5) {
-                        ForEach(ReminderLogic.grouped(model.reminders), id: \.listTitle) { group in
+                        ForEach(ReminderLogic.grouped(inputs.reminders), id: \.listTitle) { group in
                             Text(group.listTitle).font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(Color(white: 0.5)).padding(.top, 3)
                             ForEach(group.items) { r in
                                 ReminderRow(reminder: r,
-                                            label: ReminderLogic.dueLabel(r, now: model.clock, calendar: .current),
-                                            isOverdue: ReminderLogic.isOverdue(r, now: model.clock, calendar: .current),
-                                            pending: model.pendingReminderIDs.contains(r.id),
-                                            onTick: { model.toggleReminder(r.id) })
+                                            label: ReminderLogic.dueLabel(r, now: inputs.now, calendar: .current),
+                                            isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
+                                            pending: inputs.pendingReminderIDs.contains(r.id),
+                                            onTick: { inputs.actions.tickReminder(r.id) })
                             }
                         }
                     }
