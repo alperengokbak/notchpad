@@ -181,3 +181,26 @@ private func spot(_ p: WidgetPlacement?) -> String {
     #expect(l.firstTab(containing: .reminders, size: .full) == l.id("Reminders"))
     #expect(l.firstTab(containing: .tailscale, size: .medium) == nil)
 }
+
+@Test func defaultWithoutTailscaleHasTwoTabs() {
+    let l = PanelLayout.makeDefault(includeTailscale: false)
+    #expect(l.tabs.map(\.name) == ["Home", "Reminders"])
+    #expect(l.selectedTabID == l.tabs[0].id)
+}
+
+@Test func resizeToWideShiftsLeftWhenRoomy() {
+    let shelf = WidgetPlacement(kind: .shelf, size: .small, column: 2, half: .top)
+    let tab = TabPage(name: "T", widgets: [shelf])
+    var l = PanelLayout(tabs: [tab], selectedTabID: tab.id)
+    #expect(l.canResize(shelf.id, to: .wide, inTab: tab.id))
+    do { let r = l.resizeWidget(shelf.id, to: .wide, inTab: tab.id); #expect(r) }
+    #expect(spot(l.tabs[0].widgets.first) == "shelf wide c1 full")
+}
+
+@Test func resizeToWideStillRefusedWhenBlocked() {
+    let shelf = WidgetPlacement(kind: .shelf, size: .small, column: 2, half: .top)
+    let reminders = WidgetPlacement(kind: .reminders, size: .medium, column: 1, half: .full)
+    let tab = TabPage(name: "T", widgets: [shelf, reminders])
+    let l = PanelLayout(tabs: [tab], selectedTabID: tab.id)
+    #expect(!l.canResize(shelf.id, to: .wide, inTab: tab.id))
+}

@@ -104,3 +104,22 @@ private func shape(_ l: PanelLayout) -> [String] {
     #expect(l.tabs[0].id == tabID)
     #expect(l.selectedTabID == tabID)
 }
+
+@Test func brokenFileIsKeptAsBackup() throws {
+    let url = tempFile()
+    write("not json", to: url)
+    let store = LayoutStore(fileURL: url)
+    let l = store.load()
+    #expect(shape(l) == shape(.makeDefault()))
+    #expect(store.lastLoadFailed)
+    #expect(!FileManager.default.fileExists(atPath: url.path))
+    let backup = try #require(store.lastBackupURL)
+    #expect(backup.deletingLastPathComponent() == url.deletingLastPathComponent())
+    #expect(backup.lastPathComponent.hasPrefix("layout-broken-") && backup.pathExtension == "json")
+    #expect(try Data(contentsOf: backup) == Data("not json".utf8))
+}
+
+@Test func storeUsesInjectedDefault() {
+    let store = LayoutStore(fileURL: tempFile(), makeDefault: { .makeDefault(includeTailscale: false) })
+    #expect(store.load().tabs.map(\.name) == ["Home", "Reminders"])
+}

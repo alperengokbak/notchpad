@@ -40,8 +40,8 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         self.selectedTabID = selectedTabID
     }
 
-    /// Today's fixed layout: Home, Reminders, Tailscale.
-    public static func makeDefault() -> PanelLayout {
+    /// The first-launch layout: Home, Reminders and (when Tailscale is installed) Tailscale.
+    public static func makeDefault(includeTailscale: Bool = true) -> PanelLayout {
         let home = TabPage(name: "Home", widgets: [
             WidgetPlacement(kind: .music, size: .small, column: 0, half: .top),
             WidgetPlacement(kind: .shelf, size: .small, column: 0, half: .bottom),
@@ -55,7 +55,8 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         let tailscale = TabPage(name: "Tailscale", widgets: [
             WidgetPlacement(kind: .tailscale, size: .full, column: 0, half: .full),
         ])
-        return PanelLayout(tabs: [home, reminders, tailscale], selectedTabID: home.id)
+        return PanelLayout(tabs: includeTailscale ? [home, reminders, tailscale] : [home, reminders],
+                           selectedTabID: home.id)
     }
 
     // MARK: Tabs
@@ -180,11 +181,17 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         var p = tabs[i].widgets[w]
         guard p.kind.sizes.contains(size) else { return nil }
         let others = tabs[i].widgets
-        let column = size == .full ? 0 : p.column
         let halves: [SlotHalf] = size == .small ? [.top, .bottom] : [.full]
-        guard let half = halves.first(where: {
-            WidgetGrid.fits(size: size, column: column, half: $0, among: others, ignoring: widgetID)
-        }) else { return nil }
+        // Stay in the widget's column if possible; otherwise slide left (never so far that the
+        // widget leaves its old column), e.g. Wide from column 2 moves to column 1.
+        let columns = stride(from: p.column, through: 0, by: -1).filter { $0 + size.columns > p.column }
+        var found: (Int, SlotHalf)?
+        for column in columns {
+            if let half = halves.first(where: {
+                WidgetGrid.fits(size: size, column: column, half: $0, among: others, ignoring: widgetID)
+            }) { found = (column, half); break }
+        }
+        guard let (column, half) = found else { return nil }
         p.size = size
         p.column = column
         p.half = half
