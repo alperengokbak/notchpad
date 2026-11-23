@@ -32,10 +32,7 @@ struct NotchRootView: View {
                 .shadow(color: .black.opacity(model.isOpen ? 0.45 : 0), radius: 15, y: 8)
 
             if model.isOpen {
-                TabBar(tabs: model.layout.tabs, selectedID: model.selectedTabID, onSelect: { model.selectTab($0) })
-                    .frame(width: NotchGeometry.openSize.width, height: model.notchSize.height, alignment: .leading)
-                    .padding(.leading, 44)
-                    .frame(width: NotchGeometry.openSize.width, alignment: .leading)
+                TabStrip(model: model, panelWidth: NotchGeometry.openSize.width, notchSize: model.notchSize)
                     .transition(.opacity.animation(.easeOut(duration: 0.15)))
                 content
                     .padding(.top, model.notchSize.height + 4)
@@ -59,6 +56,16 @@ struct NotchRootView: View {
     }
 
     private var content: some View {
-        WidgetGridView(page: model.layout.selectedTab, inputs: model.widgetInputs(dropTargeted: dropTargeted))
+        WidgetGridView(page: model.layout.selectedTab, inputs: model.widgetInputs(dropTargeted: dropTargeted),
+                       editor: model.isEditing ? editor : nil)
+    }
+
+    private var editor: GridEditor {
+        let tab = model.selectedTabID
+        return GridEditor(
+            remove: { model.layout.removeWidget($0, fromTab: tab) },
+            canResize: { model.layout.canResize($0, to: $1, inTab: tab) },
+            resize: { _ = model.layout.resizeWidget($0, to: $1, inTab: tab) },
+            move: { model.layout.moveWidget($0, toColumn: $1, half: $2, inTab: tab) })
     }
 }

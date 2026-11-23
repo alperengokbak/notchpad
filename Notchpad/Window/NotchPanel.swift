@@ -1,6 +1,6 @@
 import AppKit
 
-/// Borderless, non-activating panel that sits over the notch and never takes focus.
+/// Borderless, non-activating panel that sits over the notch. Takes focus only in edit mode.
 final class NotchPanel: NSPanel {
     init(frame: NSRect) {
         super.init(contentRect: frame,
@@ -19,6 +19,9 @@ final class NotchPanel: NSPanel {
         ignoresMouseEvents = true
     }
 
-    override var canBecomeKey: Bool { false }
+    /// True only in edit mode, so tab names and the gallery search can take typing.
+    var allowsKey = false
+
+    override var canBecomeKey: Bool { allowsKey }
     override var canBecomeMain: Bool { false }
 }

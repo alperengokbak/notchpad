@@ -14,6 +14,7 @@ public struct PanelStateMachine: Sendable {
 
     private var pointerInside = false
     private var shelfDragActive = false
+    private var editing = false
     private var pendingOpenAt: TimeInterval?
     private var pendingCloseAt: TimeInterval?
 
@@ -48,6 +49,18 @@ public struct PanelStateMachine: Sendable {
         if active { pendingCloseAt = nil } else if isOpen && !pointerInside { scheduleClose(now: now) }
     }
 
+    /// While editing the panel stays open even if the pointer leaves it.
+    public mutating func setEditing(_ on: Bool, now: TimeInterval) {
+        editing = on
+        if on {
+            isOpen = true
+            pendingOpenAt = nil
+            pendingCloseAt = nil
+        } else if isOpen && !pointerInside {
+            scheduleClose(now: now)
+        }
+    }
+
     public mutating func tick(now: TimeInterval) {
         if let t = pendingOpenAt, now >= t {
             isOpen = true
@@ -60,7 +73,7 @@ public struct PanelStateMachine: Sendable {
     }
 
     private mutating func scheduleClose(now: TimeInterval) {
-        guard !forceOpen, !shelfDragActive else { return }
+        guard !forceOpen, !shelfDragActive, !editing else { return }
         if pendingCloseAt == nil { pendingCloseAt = now + closeDelay }
     }
 }

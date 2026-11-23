@@ -29,6 +29,28 @@ final class AppModel: ObservableObject {
     }
     private let layoutStore: LayoutStore
 
+    /// Edit mode: the panel stays open and widgets/tabs can be changed.
+    @Published private(set) var isEditing = false
+    /// The widget gallery window (only while editing).
+    @Published var showGallery = false
+    /// Set by the window controller: holds the panel open and handles keyboard focus.
+    var onEditingChanged: ((Bool) -> Void)?
+
+    func beginEditing() {
+        guard !isEditing else { return }
+        isEditing = true
+        DebugTools.log("editing: on")
+        onEditingChanged?(true)
+    }
+
+    func endEditing() {
+        guard isEditing else { return }
+        isEditing = false
+        showGallery = false
+        DebugTools.log("editing: off")
+        onEditingChanged?(false)
+    }
+
     var selectedTabID: UUID {
         get { layout.selectedTabID }
         set { layout.selectedTabID = newValue }

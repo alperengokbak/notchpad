@@ -87,3 +87,29 @@ private func opened(at t: TimeInterval = 0) -> PanelStateMachine {
     s.tick(now: 0.2)
     #expect(!s.hasPendingDeadline)
 }
+
+@Test func editingHoldsPanelOpen() {
+    var s = opened()
+    s.setEditing(true, now: 1)
+    s.pointer(inside: false, now: 1)
+    s.tick(now: 5)
+    #expect(s.isOpen)
+}
+
+@Test func editingOpensClosedPanel() {
+    var s = PanelStateMachine()
+    s.setEditing(true, now: 0)
+    #expect(s.isOpen)
+}
+
+@Test func endingEditOutsideSchedulesClose() {
+    var s = opened()
+    s.setEditing(true, now: 1)
+    s.pointer(inside: false, now: 1)
+    s.tick(now: 5)
+    s.setEditing(false, now: 5)
+    s.tick(now: 5.2)
+    #expect(s.isOpen)
+    s.tick(now: 5.31)
+    #expect(!s.isOpen)
+}

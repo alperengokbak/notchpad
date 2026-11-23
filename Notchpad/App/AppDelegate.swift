@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = NotchWindowController(model: model, forceOpen: forceOpen)
         controller.start()
         windowController = controller
+        if CommandLine.arguments.contains("--edit") { model.beginEditing() }
         if let path = DebugTools.argument(after: "--drop-file") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [model] in model.dropFiles([URL(fileURLWithPath: path)]) }
         }

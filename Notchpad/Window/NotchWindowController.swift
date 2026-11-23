@@ -12,6 +12,8 @@ final class NotchWindowController {
     private var tickTimer: Timer?
     private var notch: CGRect = .zero
     private var openRect: CGRect = .zero
+    /// The app that was in front before edit mode took focus; it gets focus back on Done.
+    private var frontAppBeforeEdit: NSRunningApplication?
 
     var onOpen: (() -> Void)?
     var onClose: (() -> Void)?
@@ -27,6 +29,7 @@ final class NotchWindowController {
             self.machine.setShelfDragActive(active, now: ProcessInfo.processInfo.systemUptime)
             self.sync()
         }
+        model.onEditingChanged = { [weak self] on in self?.setEditing(on) }
         monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
         monitors.onFileDragMoved = { [weak self] point in self?.fileDragMoved(to: point) }
         monitors.start()
@@ -66,6 +69,11 @@ final class NotchWindowController {
             let p = NotchPanel(frame: openRect)
             let host = PanelHostingView(rootView: NotchRootView(model: model))
             host.shelf = model.shelf
+            host.isEditing = { [weak model] in model?.isEditing ?? false }
+            host.onEditWidgets = { [weak model] in
+                guard let model else { return }
+                if model.isEditing { model.endEditing() } else { model.beginEditing() }
+            }
             host.frame = NSRect(origin: .zero, size: openRect.size)
             p.contentView = host
             panel = p
@@ -73,6 +81,27 @@ final class NotchWindowController {
         panel?.setFrame(openRect, display: true)
         panel?.orderFrontRegardless()
     }
+
+    /// Edit mode holds the panel open and lets it take typing; Done hands focus back.
+    private func setEditing(_ on: Bool) {
+        machine.setEditing(on, now: ProcessInfo.processInfo.systemUptime)
+        if on {
+            let front = NSWorkspace.shared.frontmostApplication
+            if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier { frontAppBeforeEdit = front }
+            panel?.allowsKey = true
+            NSApp.activate(ignoringOtherApps: true)
+            panel?.makeKey()
+        } else {
+            panel?.allowsKey = false
+            panel?.resignKey()
+            frontAppBeforeEdit?.activate()
+            frontAppBeforeEdit = nil
+        }
+        sync()
+    }
+
+    /// The open panel's frame on screen (for placing the gallery under it).
+    var panelFrame: CGRect { openRect }
 
     /// For `--snapshot`: the panel's content view.
     var contentView: NSView? { panel?.contentView }
@@ -126,9 +155,12 @@ final class NotchWindowController {
 /// Hosting view that shows the panel menu on right-click.
 final class PanelHostingView<Content: View>: NSHostingView<Content> {
     weak var shelf: ShelfStore?
+    var isEditing: () -> Bool = { false }
+    var onEditWidgets: () -> Void = {}
 
     override func rightMouseDown(with event: NSEvent) {
-        NSMenu.popUpContextMenu(PanelMenu.make(shelf: shelf), with: event, for: self)
+        NSMenu.popUpContextMenu(PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets),
+                                with: event, for: self)
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
