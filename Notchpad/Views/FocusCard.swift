@@ -91,3 +91,73 @@ struct MicWing: View {
         }
     }
 }
+
+/// Closed panel: the playing song's cover, left of the notch.
+struct MusicCoverWing: View {
+    let artwork: NSImage?
+
+    var body: some View {
+        Group {
+            if let artwork {
+                Image(nsImage: artwork).resizable().aspectRatio(contentMode: .fill)
+            } else {
+                Image(systemName: "music.note").font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color(white: 0.75))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(white: 0.15))
+            }
+        }
+        .frame(width: 22, height: 22)
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+    }
+}
+
+/// Closed panel: four bars moving to the music, right of the notch. Only on screen while a song plays.
+/// Core Animation runs the bars in the system's render server, so the app itself does no work per frame.
+struct MusicBarsWing: NSViewRepresentable {
+    func makeNSView(context: Context) -> BarsView { BarsView() }
+    func updateNSView(_ view: BarsView, context: Context) {}
+
+    final class BarsView: NSView {
+        private static let durations: [CFTimeInterval] = [0.42, 0.31, 0.37, 0.27]
+        private var bars: [CALayer] = []
+
+        override init(frame: NSRect) {
+            super.init(frame: frame)
+            wantsLayer = true
+            for (i, duration) in Self.durations.enumerated() {
+                let bar = CALayer()
+                bar.backgroundColor = NSColor.white.cgColor
+                bar.cornerRadius = 1.5
+                let grow = CABasicAnimation(keyPath: "transform.scale.y")
+                grow.fromValue = 0.3
+                grow.toValue = 1
+                grow.duration = duration
+                grow.autoreverses = true
+                grow.repeatCount = .infinity
+                grow.timeOffset = Double(i) * 0.13
+                grow.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                bar.add(grow, forKey: "bounce")
+                layer?.addSublayer(bar)
+                bars.append(bar)
+            }
+        }
+
+        required init?(coder: NSCoder) { nil }
+
+        override func layout() {
+            super.layout()
+            let width: CGFloat = 3, gap: CGFloat = 2, height: CGFloat = 14
+            let total = CGFloat(bars.count) * width + CGFloat(bars.count - 1) * gap
+            var x = (bounds.width - total) / 2
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            for bar in bars {
+                bar.bounds = CGRect(x: 0, y: 0, width: width, height: height)
+                bar.position = CGPoint(x: x + width / 2, y: bounds.midY)
+                x += width + gap
+            }
+            CATransaction.commit()
+        }
+    }
+}

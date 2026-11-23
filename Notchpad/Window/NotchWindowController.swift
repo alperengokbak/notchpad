@@ -78,6 +78,8 @@ final class NotchWindowController {
             host.isEditing = { [weak model] in model?.isEditing ?? false }
             host.micShown = { [weak model] in model?.showMicIndicator ?? true }
             host.onToggleMic = { [weak model] in model?.showMicIndicator.toggle() }
+            host.closedMusicShown = { [weak model] in model?.showClosedMusic ?? true }
+            host.onToggleClosedMusic = { [weak model] in model?.showClosedMusic.toggle() }
             host.onEditWidgets = { [weak model] in
                 guard let model else { return }
                 if model.isEditing { model.endEditing() } else { model.beginEditing() }
@@ -127,7 +129,7 @@ final class NotchWindowController {
 
     private func mouseMoved(to point: CGPoint) {
         let zone = machine.isOpen ? openRect
-            : NotchGeometry.hotZone(notch: notch, wings: WingWidths(left: model.stripWidth, right: 0))
+            : NotchGeometry.hotZone(notch: notch, wings: model.closedWings)
         machine.pointer(inside: zone.contains(point), now: ProcessInfo.processInfo.systemUptime)
         sync()
     }
@@ -177,10 +179,13 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     var onEditWidgets: () -> Void = {}
     var micShown: () -> Bool = { true }
     var onToggleMic: () -> Void = {}
+    var closedMusicShown: () -> Bool = { true }
+    var onToggleClosedMusic: () -> Void = {}
 
     override func rightMouseDown(with event: NSEvent) {
         NSMenu.popUpContextMenu(PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets,
-                                               micShown: micShown(), onToggleMic: onToggleMic),
+                                               micShown: micShown(), onToggleMic: onToggleMic,
+                                               closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic),
                                 with: event, for: self)
     }
 

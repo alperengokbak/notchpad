@@ -38,9 +38,12 @@ struct TabStrip: View {
             }
             if editing {
                 if let plus = slots.plus {
+                    let full = tabs.count >= PanelLayout.maxTabs
                     circleButton("plus") { addTab() }
+                        .disabled(full)
+                        .opacity(full ? 0.35 : 1)
                         .position(x: plus, y: notchSize.height / 2)
-                        .help("Add a tab")
+                        .help(full ? "Up to \(PanelLayout.maxTabs) tabs" : "Add a tab")
                 }
                 HStack(spacing: Self.spacing) {
                     textButton("Add widget", filled: false) { model.showGallery = true }
@@ -75,13 +78,14 @@ struct TabStrip: View {
         let leftEnd = panelWidth / 2 - notchSize.width / 2 - Self.notchGap
         let rightStart = panelWidth / 2 + notchSize.width / 2 + Self.notchGap
         let rightEnd = panelWidth - Self.edge - (editing ? controlsWidth + Self.spacing : 0)
-        let plusWidth: CGFloat = (editing && tabs.count < PanelLayout.maxTabs) ? 22 : 0
+        let plusWidth: CGFloat = editing ? 22 : 0
         let widths = tabs.map { tab -> CGFloat in
             let text = tab.id == renamingID ? max(Self.textWidth(draft), 60) : Self.textWidth(tab.name)
             return text + 20
         }
         let placed = TabStripLayout.place(widths: widths, leftStart: leftStart, leftEnd: leftEnd,
                                           rightStart: rightStart, rightEnd: rightEnd, plusWidth: plusWidth,
+                                          plusIsOptional: tabs.count >= PanelLayout.maxTabs,
                                           spacing: Self.spacing)
         return Slots(tabs: zip(placed.mids, placed.widths).map { (midX: $0, width: $1) }, plus: placed.plusMid)
     }

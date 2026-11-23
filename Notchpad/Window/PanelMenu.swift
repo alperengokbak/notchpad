@@ -5,7 +5,8 @@ import NotchpadCore
 @MainActor
 enum PanelMenu {
     static func make(shelf: ShelfStore?, editing: Bool, onEditWidgets: @escaping () -> Void,
-                     micShown: Bool, onToggleMic: @escaping () -> Void) -> NSMenu {
+                     micShown: Bool, onToggleMic: @escaping () -> Void,
+                     closedMusicShown: Bool, onToggleClosedMusic: @escaping () -> Void) -> NSMenu {
         let menu = NSMenu()
         let edit = NSMenuItem(title: editing ? "Done editing" : "Edit widgets…",
                               action: #selector(MenuTarget.editWidgets), keyEquivalent: "")
@@ -30,6 +31,11 @@ enum PanelMenu {
             MenuTarget.shared.onToggleMic = onToggleMic
             menu.addItem(mic)
         }
+        let music = NSMenuItem(title: "Show music on closed notch", action: #selector(MenuTarget.toggleClosedMusic), keyEquivalent: "")
+        music.target = MenuTarget.shared
+        music.state = closedMusicShown ? .on : .off
+        MenuTarget.shared.onToggleClosedMusic = onToggleClosedMusic
+        menu.addItem(music)
         let login = NSMenuItem(title: "Launch at login", action: #selector(MenuTarget.toggleLogin), keyEquivalent: "")
         login.target = MenuTarget.shared
         login.state = LoginItem.isEnabled ? .on : .off
@@ -48,9 +54,14 @@ final class MenuTarget: NSObject {
     weak var shelf: ShelfStore?
     var onEditWidgets: (() -> Void)?
     var onToggleMic: (() -> Void)?
+    var onToggleClosedMusic: (() -> Void)?
 
     @objc func toggleMic() {
         onToggleMic?()
+    }
+
+    @objc func toggleClosedMusic() {
+        onToggleClosedMusic?()
     }
 
     @objc func editWidgets() {

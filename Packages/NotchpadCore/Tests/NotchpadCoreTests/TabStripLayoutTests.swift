@@ -42,3 +42,21 @@ private func allInside(_ s: TabStripSlots, plus: CGFloat) -> Bool {
     #expect(s.mids.count == 4)
     #expect(allInside(s, plus: 0))
 }
+
+@Test func optionalPlusNeverShrinksTabs() {
+    let widths: [CGFloat] = [56, 56, 90, 80]
+    let without = place(widths)
+    let s = TabStripLayout.place(widths: widths, leftStart: sides.leftStart, leftEnd: sides.leftEnd,
+                                 rightStart: sides.rightStart, rightEnd: sides.rightEnd, plusWidth: 22,
+                                 plusIsOptional: true, spacing: 6)
+    #expect(s.widths == without.widths)
+    #expect(s.mids == without.mids)
+    #expect(allInside(s, plus: 22))
+}
+
+@Test func optionalPlusShownWhenThereIsRoom() {
+    let s = TabStripLayout.place(widths: [50, 50], leftStart: sides.leftStart, leftEnd: sides.leftEnd,
+                                 rightStart: sides.rightStart, rightEnd: sides.rightEnd, plusWidth: 22,
+                                 plusIsOptional: true, spacing: 6)
+    #expect(s.plusMid != nil)
+}

@@ -96,7 +96,19 @@ final class AppModel: ObservableObject {
     }
     private let micMonitor = MicMonitor()
     /// Width of the closed-notch strip (0 when nothing to show).
-    var stripWidth: CGFloat { NotchGeometry.wings(focus: focus.isActive, mic: mic.isActive, music: false).left }
+    /// Cover and bars beside the closed notch while a song plays (right-click option, on by default).
+    @Published var showClosedMusic = true {
+        didSet {
+            guard showClosedMusic != oldValue else { return }
+            preferences.showClosedMusic = showClosedMusic
+            if showClosedMusic, !isOpen, music.isPlaying { refreshMusic() }
+            DebugTools.log("closed music: \(showClosedMusic ? "on" : "off")")
+        }
+    }
+    /// The black extensions beside the notch while it's closed (focus, mic and cover left; bars right).
+    var closedWings: WingWidths {
+        NotchGeometry.wings(focus: focus.isActive, mic: mic.isActive, music: showClosedMusic && music.isPlaying)
+    }
     private(set) var lastFocusMinutes = 25
     private var focusTicker: Timer?
     private var askedNotificationPermission = false
@@ -112,6 +124,10 @@ final class AppModel: ObservableObject {
 
     /// `--demo`: made-up data for README screenshots, so no real reminders or files show.
     static let isDemo = CommandLine.arguments.contains("--demo")
+    /// Either Tailscale app (App Store or standalone) is on this Mac. Only decides the first-launch layout.
+    static var isTailscaleInstalled: Bool {
+        TailscaleController.appBundleIDs.contains { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil }
+    }
 
     let shelf = ShelfStore(storageURL: AppModel.isDemo
         ? FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo/shelf.json")
@@ -152,9 +168,12 @@ final class AppModel: ObservableObject {
         }()
         let running = Set(MusicSource.allCases.filter(AppModel.isRunning))
         musicSource = PlayerFollower.choose(current: Preferences().lastMusicSource ?? .appleMusic, playing: [], running: running)
-        layoutStore = LayoutStore(fileURL: layoutURL)
+        layoutStore = LayoutStore(fileURL: layoutURL,
+                                  makeDefault: { .makeDefault(includeTailscale: AppModel.isTailscaleInstalled) })
         layout = layoutStore.load()
-        if layoutStore.lastLoadFailed { DebugTools.log("layout: unreadable file, using the default") }
+        if layoutStore.lastLoadFailed {
+            DebugTools.log("layout: unreadable file, using the default (kept as \(layoutStore.lastBackupURL?.lastPathComponent ?? "-"))")
+        }
         calendarAccess = calendarReader.access
         NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: calendarReader.store,
                                                queue: .main) { [weak self] _ in
@@ -177,6 +196,7 @@ final class AppModel: ObservableObject {
             DebugTools.log("mic: \(running)")
             self.updateFocusTicker()
         }
+        showClosedMusic = preferences.showClosedMusic
         showMicIndicator = Self.micIndicatorAvailable && preferences.showMicIndicator
         if showMicIndicator { micMonitor.start() }
         if CommandLine.arguments.contains("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
@@ -400,7 +420,10 @@ final class AppModel: ObservableObject {
                     self.followPlayer()
                     guard source == self.musicSource else { return }
                     if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
-                    if self.neededSources.contains(.music) && shouldQuery { self.refreshMusic() }
+                    // New song: drop the old cover so neither the panel nor the closed notch shows a stale one.
+                    if let track, track.title != self.artworkTitle { self.artwork = nil }
+                    let closedNeedsCover = self.showClosedMusic && !self.isOpen && self.music.isPlaying
+                    if (self.neededSources.contains(.music) || closedNeedsCover) && shouldQuery { self.refreshMusic() }
                 }
             }
         }

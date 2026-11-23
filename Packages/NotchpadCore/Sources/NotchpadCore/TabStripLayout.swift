@@ -13,20 +13,20 @@ public enum TabStripLayout {
     /// edit buttons or another pill.
     public static func place(widths natural: [CGFloat], leftStart: CGFloat, leftEnd: CGFloat,
                              rightStart: CGFloat, rightEnd: CGFloat, plusWidth: CGFloat,
-                             spacing: CGFloat) -> TabStripSlots {
+                             plusIsOptional: Bool = false, spacing: CGFloat) -> TabStripSlots {
         var scale: CGFloat = 1
-        var slots = attempt(natural, leftStart, leftEnd, rightStart, rightEnd, plusWidth, spacing)
+        var slots = attempt(natural, leftStart, leftEnd, rightStart, rightEnd, plusWidth, plusIsOptional, spacing)
         while slots == nil, scale > 0.3 {
             scale *= 0.95
-            slots = attempt(natural.map { $0 * scale }, leftStart, leftEnd, rightStart, rightEnd, plusWidth, spacing)
+            slots = attempt(natural.map { $0 * scale }, leftStart, leftEnd, rightStart, rightEnd, plusWidth, plusIsOptional, spacing)
         }
-        return slots ?? attempt(natural.map { $0 * scale }, leftStart, leftEnd, rightStart, .infinity, plusWidth, spacing)!
+        return slots ?? attempt(natural.map { $0 * scale }, leftStart, leftEnd, rightStart, .infinity, plusWidth, plusIsOptional, spacing)!
     }
 
     /// One greedy pass; nil when something ends past `rightEnd`.
     private static func attempt(_ widths: [CGFloat], _ leftStart: CGFloat, _ leftEnd: CGFloat,
                                 _ rightStart: CGFloat, _ rightEnd: CGFloat, _ plusWidth: CGFloat,
-                                _ spacing: CGFloat) -> TabStripSlots? {
+                                _ plusIsOptional: Bool, _ spacing: CGFloat) -> TabStripSlots? {
         var mids: [CGFloat] = []
         var x = leftStart
         var onRight = false
@@ -42,7 +42,9 @@ public enum TabStripLayout {
         }
         var plus: CGFloat?
         if plusWidth > 0 {
-            guard let mid = fit(plusWidth) else { return nil }
+            // An optional + (greyed out at the tab limit) only shows if it fits; it never shrinks the tabs.
+            let mid = fit(plusWidth)
+            if mid == nil && !plusIsOptional { return nil }
             plus = mid
         }
         return TabStripSlots(mids: mids, widths: widths, plusMid: plus)
