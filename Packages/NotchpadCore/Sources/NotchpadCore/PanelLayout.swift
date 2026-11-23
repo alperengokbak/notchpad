@@ -1,0 +1,202 @@
+import Foundation
+
+/// One tab: a name and the widgets placed on it.
+public struct TabPage: Codable, Equatable, Identifiable, Sendable {
+    public var id: UUID
+    public var name: String
+    public var widgets: [WidgetPlacement]
+
+    public init(id: UUID = UUID(), name: String, widgets: [WidgetPlacement] = []) {
+        self.id = id
+        self.name = name
+        self.widgets = widgets
+    }
+}
+
+/// Whether a widget can be added to a tab, and why not.
+public enum AddCheck: Equatable, Sendable {
+    case ok, alreadyOnTab, noRoom
+
+    public var reason: String? {
+        switch self {
+        case .ok: nil
+        case .alreadyOnTab: "Already on this tab"
+        case .noRoom: "No room on this tab"
+        }
+    }
+}
+
+/// All tabs, their widgets, and which tab is showing. Saved as JSON.
+public struct PanelLayout: Codable, Equatable, Sendable {
+    public static let maxTabs = 4
+    public static let maxNameLength = 12
+
+    public var version = 1
+    public var tabs: [TabPage]
+    public var selectedTabID: UUID
+
+    public init(tabs: [TabPage], selectedTabID: UUID) {
+        self.tabs = tabs
+        self.selectedTabID = selectedTabID
+    }
+
+    /// Today's fixed layout: Home, Reminders, Tailscale.
+    public static func makeDefault() -> PanelLayout {
+        let home = TabPage(name: "Home", widgets: [
+            WidgetPlacement(kind: .music, size: .small, column: 0, half: .top),
+            WidgetPlacement(kind: .shelf, size: .small, column: 0, half: .bottom),
+            WidgetPlacement(kind: .reminders, size: .medium, column: 1, half: .full),
+            WidgetPlacement(kind: .nextEvent, size: .small, column: 2, half: .top),
+            WidgetPlacement(kind: .focus, size: .small, column: 2, half: .bottom),
+        ])
+        let reminders = TabPage(name: "Reminders", widgets: [
+            WidgetPlacement(kind: .reminders, size: .full, column: 0, half: .full),
+        ])
+        let tailscale = TabPage(name: "Tailscale", widgets: [
+            WidgetPlacement(kind: .tailscale, size: .full, column: 0, half: .full),
+        ])
+        return PanelLayout(tabs: [home, reminders, tailscale], selectedTabID: home.id)
+    }
+
+    // MARK: Tabs
+
+    public var selectedTab: TabPage { tabs.first { $0.id == selectedTabID } ?? tabs[0] }
+
+    public func tab(_ id: UUID) -> TabPage? { tabs.first { $0.id == id } }
+
+    /// Name first (any case), then a 1-based number.
+    public func tabIndex(matching arg: String) -> Int? {
+        if let i = tabs.firstIndex(where: { $0.name.caseInsensitiveCompare(arg) == .orderedSame }) { return i }
+        if let n = Int(arg), n >= 1, n <= tabs.count { return n - 1 }
+        return nil
+    }
+
+    /// Adds "Tab N" and selects it. Nil when there are already `maxTabs`.
+    public mutating func addTab() -> UUID? {
+        guard tabs.count < Self.maxTabs else { return nil }
+        var n = 1
+        while !isNameFree("Tab \(n)", except: nil) { n += 1 }
+        let tab = TabPage(name: "Tab \(n)")
+        tabs.append(tab)
+        selectedTabID = tab.id
+        return tab.id
+    }
+
+    public mutating func renameTab(_ id: UUID, to name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed.count <= Self.maxNameLength,
+              isNameFree(trimmed, except: id), let i = index(of: id) else { return false }
+        tabs[i].name = trimmed
+        return true
+    }
+
+    /// Refuses to delete the last tab. Deleting the selected tab selects its neighbour.
+    public mutating func deleteTab(_ id: UUID) -> Bool {
+        guard tabs.count > 1, let i = index(of: id) else { return false }
+        tabs.remove(at: i)
+        if selectedTabID == id { selectedTabID = tabs[min(i, tabs.count - 1)].id }
+        return true
+    }
+
+    public mutating func moveTab(from: Int, to: Int) {
+        guard tabs.indices.contains(from), tabs.indices.contains(to), from != to else { return }
+        let tab = tabs.remove(at: from)
+        tabs.insert(tab, at: to)
+    }
+
+    public func firstTab(containing kind: WidgetKind, size: WidgetSize? = nil) -> UUID? {
+        tabs.first { $0.widgets.contains { $0.kind == kind && (size == nil || $0.size == size) } }?.id
+    }
+
+    // MARK: Widgets
+
+    public func canAdd(_ kind: WidgetKind, size: WidgetSize, toTab id: UUID) -> AddCheck {
+        guard let tab = tab(id) else { return .noRoom }
+        if tab.widgets.contains(where: { $0.kind == kind }) { return .alreadyOnTab }
+        guard kind.sizes.contains(size), WidgetGrid.firstFreeSpot(for: size, among: tab.widgets) != nil else { return .noRoom }
+        return .ok
+    }
+
+    /// Adds at the first free spot.
+    public mutating func addWidget(_ kind: WidgetKind, size: WidgetSize, toTab id: UUID) -> Bool {
+        guard canAdd(kind, size: size, toTab: id) == .ok, let i = index(of: id),
+              let spot = WidgetGrid.firstFreeSpot(for: size, among: tabs[i].widgets) else { return false }
+        tabs[i].widgets.append(WidgetPlacement(kind: kind, size: size, column: spot.column, half: spot.half))
+        return true
+    }
+
+    public mutating func removeWidget(_ widgetID: UUID, fromTab id: UUID) {
+        guard let i = index(of: id) else { return }
+        tabs[i].widgets.removeAll { $0.id == widgetID }
+    }
+
+    public func canResize(_ widgetID: UUID, to size: WidgetSize, inTab id: UUID) -> Bool {
+        resized(widgetID, to: size, inTab: id) != nil
+    }
+
+    /// Keeps the column. Small takes the top half, or the bottom if the top is taken.
+    public mutating func resizeWidget(_ widgetID: UUID, to size: WidgetSize, inTab id: UUID) -> Bool {
+        guard let (i, w, placement) = resized(widgetID, to: size, inTab: id) else { return false }
+        tabs[i].widgets[w] = placement
+        return true
+    }
+
+    /// Moves into an empty spot, or swaps with the one widget already there if both fit.
+    public mutating func moveWidget(_ widgetID: UUID, toColumn column: Int, half: SlotHalf, inTab id: UUID) -> Bool {
+        guard let i = index(of: id), let w = tabs[i].widgets.firstIndex(where: { $0.id == widgetID }) else { return false }
+        var widgets = tabs[i].widgets
+        let moving = widgets[w]
+        let targetHalf: SlotHalf = moving.size == .small ? half : .full
+        guard let target = WidgetGrid.cells(size: moving.size, column: column, half: targetHalf) else { return false }
+        let others = widgets.indices.filter { j in
+            j != w && !(WidgetGrid.cells(of: widgets[j])?.isDisjoint(with: target) ?? true)
+        }
+        guard others.count <= 1 else { return false }
+        widgets[w].column = column
+        widgets[w].half = targetHalf
+        if let j = others.first {
+            widgets[j].column = moving.column
+            if widgets[j].size == .small {
+                widgets[j].half = moving.half == .full ? .top : moving.half
+            } else {
+                widgets[j].half = .full
+            }
+        }
+        guard Self.noOverlaps(widgets) else { return false }
+        tabs[i].widgets = widgets
+        return true
+    }
+
+    // MARK: Helpers
+
+    private func index(of id: UUID) -> Int? { tabs.firstIndex { $0.id == id } }
+
+    private func isNameFree(_ name: String, except id: UUID?) -> Bool {
+        !tabs.contains { $0.id != id && $0.name.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
+    private func resized(_ widgetID: UUID, to size: WidgetSize, inTab id: UUID) -> (Int, Int, WidgetPlacement)? {
+        guard let i = index(of: id), let w = tabs[i].widgets.firstIndex(where: { $0.id == widgetID }) else { return nil }
+        var p = tabs[i].widgets[w]
+        guard p.kind.sizes.contains(size) else { return nil }
+        let others = tabs[i].widgets
+        let column = size == .full ? 0 : p.column
+        let halves: [SlotHalf] = size == .small ? [.top, .bottom] : [.full]
+        guard let half = halves.first(where: {
+            WidgetGrid.fits(size: size, column: column, half: $0, among: others, ignoring: widgetID)
+        }) else { return nil }
+        p.size = size
+        p.column = column
+        p.half = half
+        return (i, w, p)
+    }
+
+    static func noOverlaps(_ widgets: [WidgetPlacement]) -> Bool {
+        var taken = Set<GridCell>()
+        for w in widgets {
+            guard let cells = WidgetGrid.cells(of: w), cells.isDisjoint(with: taken) else { return false }
+            taken.formUnion(cells)
+        }
+        return true
+    }
+}
