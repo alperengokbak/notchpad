@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = NotchWindowController(model: model, forceOpen: forceOpen)
         controller.start()
         windowController = controller
+        if let path = DebugTools.argument(after: "--drop-file") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [model] in model.dropFiles([URL(fileURLWithPath: path)]) }
+        }
         if let path = DebugTools.argument(after: "--snapshot") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 if let view = controller.contentView { DebugTools.snapshot(view, to: path) }

@@ -18,12 +18,34 @@ final class AppModel: ObservableObject {
     /// Ticks every second while open, so the progress bar moves.
     @Published var clock = Date()
 
-    @Published var selectedTab: PanelTab = .home {
+    /// Tabs and widgets. Saved on every change; changing it starts or stops the data each widget needs.
+    @Published var layout: PanelLayout {
         didSet {
-            DebugTools.log("tab: \(selectedTab.rawValue)")
-            if selectedTab != oldValue { updateTailscaleRefresh() }
+            guard layout != oldValue else { return }
+            layoutStore.save(layout)
+            if layout.selectedTabID != oldValue.selectedTabID { DebugTools.log("tab: \(layout.selectedTab.name)") }
+            updateDataSources()
         }
     }
+    private let layoutStore: LayoutStore
+
+    var selectedTabID: UUID {
+        get { layout.selectedTabID }
+        set { layout.selectedTabID = newValue }
+    }
+
+    func selectTab(_ id: UUID) {
+        guard layout.tab(id) != nil else { return }
+        selectedTabID = id
+    }
+
+    /// Data sources the visible widgets need. Empty while the panel is closed.
+    var neededSources: Set<DataSource> {
+        guard isOpen else { return [] }
+        return layout.selectedTab.widgets.reduce(into: Set<DataSource>()) { $0.formUnion($1.kind.dataSources) }
+    }
+    /// Sources already started since the panel opened (each refreshes once when it becomes needed).
+    private var activeSources: Set<DataSource> = []
     @Published var focus = FocusTimer()
     @Published var mic = MicActivity()
     private let micMonitor = MicMonitor()
@@ -73,17 +95,31 @@ final class AppModel: ObservableObject {
     private var openTimers: [Timer] = []
 
     init() {
+        let layoutURL: URL = {
+            if let path = DebugTools.argument(after: "--layout-file") { return URL(fileURLWithPath: path) }
+            if AppModel.isDemo {
+                return FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo/layout.json")
+            }
+            return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Notchpad/layout.json")
+        }()
+        layoutStore = LayoutStore(fileURL: layoutURL)
+        layout = layoutStore.load()
+        if layoutStore.lastLoadFailed { DebugTools.log("layout: unreadable file, using the default") }
         calendarAccess = calendarReader.access
         NotificationCenter.default.addObserver(forName: .EKEventStoreChanged, object: calendarReader.store,
                                                queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.refreshEvents()
-                self?.refreshReminders()
+                guard let self else { return }
+                if self.neededSources.contains(.calendar) { self.refreshEvents() }
+                if self.neededSources.contains(.reminders) { self.refreshReminders() }
             }
         }
         observeMusic()
         music = isMusicRunning ? .idle : .notRunning
-        if let tab = DebugTools.argument(after: "--tab").flatMap(PanelTab.init(rawValue:)) { selectedTab = tab }
+        if let arg = DebugTools.argument(after: "--tab"), let i = layout.tabIndex(matching: arg) {
+            selectedTabID = layout.tabs[i].id
+        }
         if CommandLine.arguments.contains("--focus-demo") { startFocus(.focus, minutes: 25) }
         if Self.isDemo { loadDemo() }
         micMonitor.onChange = { [weak self] running in
@@ -104,33 +140,45 @@ final class AppModel: ObservableObject {
     /// Called by the window controller right after the panel opens.
     func panelDidOpen() {
         shelf.refresh()
-        updateTailscaleRefresh()
-        refreshEvents()
-        every(60) { $0.refreshEvents() }
-        refreshReminders()
-        if remindersAccess == .unknown {
-            Task {
-                remindersAccess = await remindersReader.requestAccess()
-                DebugTools.log("reminders: \(remindersAccess)")
-                refreshReminders()
-            }
-        }
-        refreshMusic()
         clock = Date()
         every(1) { $0.clock = Date() }
-        if calendarAccess == .unknown {
-            Task {
-                calendarAccess = await calendarReader.requestAccess()
-                DebugTools.log("calendar: \(calendarAccess)")
-                refreshEvents()
-            }
-        }
+        every(60) { if $0.neededSources.contains(.calendar) { $0.refreshEvents() } }
+        updateDataSources()
     }
 
     /// Called by the window controller right after the panel closes. Nothing polls while closed.
     func panelDidClose() {
         openTimers.forEach { $0.invalidate() }
         openTimers.removeAll()
+        updateDataSources()
+    }
+
+    /// Starts what the visible widgets need and stops the rest. Safe to call any number of times.
+    func updateDataSources() {
+        let needed = neededSources
+        let newlyNeeded = needed.subtracting(activeSources)
+        activeSources = needed
+        if newlyNeeded.contains(.reminders) {
+            refreshReminders()
+            if remindersAccess == .unknown {
+                Task {
+                    remindersAccess = await remindersReader.requestAccess()
+                    DebugTools.log("reminders: \(remindersAccess)")
+                    refreshReminders()
+                }
+            }
+        }
+        if newlyNeeded.contains(.calendar) {
+            refreshEvents()
+            if calendarAccess == .unknown {
+                Task {
+                    calendarAccess = await calendarReader.requestAccess()
+                    DebugTools.log("calendar: \(calendarAccess)")
+                    refreshEvents()
+                }
+            }
+        }
+        if newlyNeeded.contains(.music) { refreshMusic() }
         updateTailscaleRefresh()
     }
 
@@ -144,13 +192,17 @@ final class AppModel: ObservableObject {
 
     // MARK: Tailscale
 
-    private var tailscaleShowing: Bool { isOpen && selectedTab == .tailscale }
+    private var tailscaleShowing: Bool { neededSources.contains(.tailscale) }
 
-    /// Refreshes now and every 5 s while the Tailscale tab is showing; stops otherwise.
+    /// Refreshes now and every 5 s while a Tailscale widget is showing; stops otherwise.
+    /// Leaves a running timer alone, so switching between two tabs with Tailscale keeps one timer.
     private func updateTailscaleRefresh() {
-        tailscaleTimer?.invalidate()
-        tailscaleTimer = nil
-        guard tailscaleShowing else { return }
+        guard tailscaleShowing else {
+            tailscaleTimer?.invalidate()
+            tailscaleTimer = nil
+            return
+        }
+        guard tailscaleTimer == nil else { return }
         refreshTailscale()
         tailscaleTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshTailscale() }
@@ -239,9 +291,23 @@ final class AppModel: ObservableObject {
         musicQueue.async { controller.send(command) }
     }
 
-    /// The Reminders heading: jump to the full Reminders list.
+    /// The Reminders heading: jump to the tab with the full list, or open the Reminders app if there isn't one.
     func openFullReminders() {
-        selectedTab = .reminders
+        if let id = layout.firstTab(containing: .reminders, size: .full) {
+            selectTab(id)
+        } else if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.reminders") {
+            NSWorkspace.shared.openApplication(at: url, configuration: .init())
+        }
+    }
+
+    /// Files dropped on the open panel always go to the shelf; show a tab with a Shelf if this one has none.
+    func dropFiles(_ urls: [URL]) {
+        shelf.add(urls)
+        if !layout.selectedTab.widgets.contains(where: { $0.kind == .shelf }),
+           let id = layout.firstTab(containing: .shelf) {
+            selectTab(id)
+        }
+        DebugTools.log("dropped: \(urls.count)")
     }
 
     func openMusic() {
@@ -267,7 +333,7 @@ final class AppModel: ObservableObject {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
-                if self.isOpen && shouldQuery { self.refreshMusic() }
+                if self.neededSources.contains(.music) && shouldQuery { self.refreshMusic() }
             }
         }
         let ws = NSWorkspace.shared.notificationCenter

@@ -3,6 +3,8 @@ import AppKit
 /// Launch flags used for automated checks:
 /// `--force-open` keeps the panel open, `--snapshot <path>` saves the panel as a PNG and quits,
 /// `--log-state` prints "open"/"closed" to stdout on every change.
+/// Layout checks: `--layout-file <path>` (never touches the real layout), `--tab <name or number>`,
+/// `--drop-file <path>`, `--widget-sheet <png>`.
 enum DebugTools {
     static func argument(after flag: String) -> String? {
         let args = CommandLine.arguments
