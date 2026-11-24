@@ -8,6 +8,7 @@ struct NextEventView: View {
     let access: CalendarAccess
     var onNew: () -> Void = {}
     var onEdit: (EventSummary) -> Void = { _ in }
+    var onDelete: (EventSummary) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -19,7 +20,8 @@ struct NextEventView: View {
                 EmptyView()
             case .granted:
                 if let e = events.first {
-                    EventRow(event: e, lines: 2, startOnly: true) { onEdit(e) }
+                    EventRow(event: e, lines: 2, startOnly: true, onTap: { onEdit(e) },
+                             onDelete: e.isEditable ? { onDelete(e) } : nil)
                 } else {
                     Text("Nothing else today").font(.system(size: 12)).foregroundStyle(Color(white: 0.6))
                 }
@@ -52,8 +54,20 @@ struct EventRow: View {
     /// Only the start time (the Small widget has no room for "15:00 – 17:00").
     var startOnly = false
     let onTap: () -> Void
+    /// Trash on hover; nil for read-only calendars.
+    var onDelete: (() -> Void)?
+
+    @State private var hovering = false
 
     var body: some View {
+        HStack(alignment: .center, spacing: 4) {
+            row
+            if let onDelete { HoverDelete(rowHovered: hovering, onDelete: onDelete) }
+        }
+        .onHover { hovering = $0 }
+    }
+
+    private var row: some View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 6) {
                 RoundedRectangle(cornerRadius: 1.5).fill(Color(red: event.red, green: event.green, blue: event.blue))

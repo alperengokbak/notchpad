@@ -11,6 +11,10 @@ struct ReminderRow: View {
     let onTick: () -> Void
     /// Clicking the title opens the editor.
     var onEdit: () -> Void = {}
+    /// Trash on hover (nil = no trash, e.g. gallery previews).
+    var onDelete: (() -> Void)?
+
+    @State private var hovering = false
 
     var body: some View {
         HStack(spacing: 7) {
@@ -26,7 +30,7 @@ struct ReminderRow: View {
                     Text(reminder.title).font(.system(size: 12, weight: .medium)).lineLimit(1)
                         .strikethrough(pending).foregroundStyle(pending ? Color(white: 0.5) : .white)
                     Spacer(minLength: 4)
-                    if let label {
+                    if let label, !(hovering && onDelete != nil) {
                         Text(label).font(.system(size: 10, weight: .medium))
                             .foregroundStyle(isOverdue ? Color.red : Color(white: 0.55))
                             .lineLimit(1).fixedSize()
@@ -36,7 +40,50 @@ struct ReminderRow: View {
             }
             .buttonStyle(.plain)
             .help("Edit")
+            if let onDelete { HoverDelete(rowHovered: hovering, onDelete: onDelete) }
         }
+        .onHover { hovering = $0 }
+    }
+}
+
+/// Trash on a hovered row. The first click asks ("Delete"), the second deletes, because a deleted
+/// reminder or event can't be brought back. Leaving the row or waiting 3 seconds cancels.
+struct HoverDelete: View {
+    let rowHovered: Bool
+    let onDelete: () -> Void
+
+    @State private var confirming = false
+    @State private var token = 0
+
+    var body: some View {
+        Group {
+            if confirming {
+                Button {
+                    confirming = false
+                    onDelete()
+                } label: {
+                    Text("Delete").font(.system(size: 10, weight: .semibold)).foregroundStyle(.white)
+                        .padding(.horizontal, 7).padding(.vertical, 2)
+                        .background(Capsule().fill(Color.red)).contentShape(Capsule())
+                }
+                .help("Click again to delete")
+            } else if rowHovered {
+                Button {
+                    confirming = true
+                    DebugTools.log("delete: asking")
+                    token += 1
+                    let mine = token
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { if token == mine { confirming = false } }
+                } label: {
+                    Image(systemName: "trash").font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(Color(white: 0.6))
+                        .frame(width: 18, height: 16).contentShape(Rectangle())
+                }
+                .help("Delete")
+            }
+        }
+        .buttonStyle(.plain)
+        .onChange(of: rowHovered) { _, hovered in if !hovered { confirming = false } }
     }
 }
 
@@ -85,7 +132,8 @@ struct RemindersSection: View {
                                             isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
                                             pending: inputs.pendingReminderIDs.contains(r.id),
                                             onTick: { inputs.actions.tickReminder(r.id) },
-                                            onEdit: { inputs.actions.editReminder(r.id) })
+                                            onEdit: { inputs.actions.editReminder(r.id) },
+                                    onDelete: { inputs.actions.deleteReminder(r.id) })
                             }
                         }
                         .padding(.bottom, 2)
@@ -135,7 +183,8 @@ struct RemindersTab: View {
                                             isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
                                             pending: inputs.pendingReminderIDs.contains(r.id),
                                             onTick: { inputs.actions.tickReminder(r.id) },
-                                    onEdit: { inputs.actions.editReminder(r.id) })
+                                    onEdit: { inputs.actions.editReminder(r.id) },
+                                    onDelete: { inputs.actions.deleteReminder(r.id) })
                             }
                         }
                     }

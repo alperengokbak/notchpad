@@ -19,6 +19,8 @@ struct WidgetActions {
     var editReminder: (String) -> Void = { _ in }
     var newEvent: () -> Void = {}
     var editEvent: (EventSummary) -> Void = { _ in }
+    var deleteReminder: (String) -> Void = { _ in }
+    var deleteEvent: (EventSummary) -> Void = { _ in }
     var seekMusic: (TimeInterval) -> Void = { _ in }
     var stepFocus: (Int) -> Void = { _ in }
     var beginFocusTyping: () -> Void = {}
@@ -73,6 +75,8 @@ extension AppModel {
         actions.editReminder = { [weak self] in self?.editReminder($0) }
         actions.newEvent = { [weak self] in self?.newEvent() }
         actions.editEvent = { [weak self] in self?.editEvent($0) }
+        actions.deleteReminder = { [weak self] in self?.deleteReminder($0) }
+        actions.deleteEvent = { [weak self] in self?.deleteEvent($0) }
         actions.seekMusic = { [weak self] in self?.seekMusic(to: $0) }
         actions.stepFocus = { [weak self] in self?.stepFocus($0) }
         actions.beginFocusTyping = { [weak self] in self?.beginFocusMinutesTyping() }

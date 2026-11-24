@@ -705,6 +705,28 @@ final class AppModel: ObservableObject {
         if ok { cancelEditor() } else { editorError = "Couldn't save" }
     }
 
+    /// Trash on a reminder row (after the second click). Nothing is ticked as completed.
+    func deleteReminder(_ id: String) {
+        let ok = Self.isDemo || remindersReader.delete(id)
+        if ok {
+            reminders.removeAll { $0.id == id }
+            pendingReminderIDs.remove(id)
+            refreshReminders()
+        }
+        DebugTools.log("reminder delete ok=\(ok)")
+    }
+
+    /// Trash on an event row: only this occurrence of a repeating event.
+    func deleteEvent(_ e: EventSummary) {
+        guard e.isEditable else { return }
+        let ok = Self.isDemo || calendarReader.delete(e.id, occurrence: e.start)
+        if ok {
+            events.removeAll { $0.id == e.id && $0.start == e.start }
+            refreshEvents()
+        }
+        DebugTools.log("event delete ok=\(ok)")
+    }
+
     func deleteEditorItem(_ item: EditorItem) {
         let ok: Bool
         switch item {

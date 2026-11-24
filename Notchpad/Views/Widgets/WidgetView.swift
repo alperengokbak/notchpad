@@ -36,7 +36,7 @@ struct WidgetView: View {
             RemindersSection(inputs: inputs)
         case (.nextEvent, .small):
             NextEventView(events: inputs.events, access: inputs.calendarAccess,
-                          onNew: a.newEvent, onEdit: a.editEvent)
+                          onNew: a.newEvent, onEdit: a.editEvent, onDelete: a.deleteEvent)
         case (.nextEvent, _):
             TodayEventsView(inputs: inputs)
         case (.focus, _):
@@ -80,7 +80,8 @@ private struct TodayEventsView: View {
                     Text("Nothing else today").font(.system(size: 12)).foregroundStyle(Color(white: 0.6))
                 }
                 ForEach(events) { e in
-                    EventRow(event: e) { inputs.actions.editEvent(e) }
+                    EventRow(event: e, onTap: { inputs.actions.editEvent(e) },
+                             onDelete: e.isEditable ? { inputs.actions.deleteEvent(e) } : nil)
                 }
             }
         }
