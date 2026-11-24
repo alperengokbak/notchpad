@@ -154,10 +154,6 @@ final class AppModel: ObservableObject {
 
     /// `--demo`: made-up data for README screenshots, so no real reminders or files show.
     static let isDemo = CommandLine.arguments.contains("--demo")
-    /// Either Tailscale app (App Store or standalone) is on this Mac. Only decides the first-launch layout.
-    static var isTailscaleInstalled: Bool {
-        TailscaleController.appBundleIDs.contains { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil }
-    }
 
     let shelf = ShelfStore(storageURL: AppModel.isDemo
         ? FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo/shelf.json")
@@ -199,7 +195,7 @@ final class AppModel: ObservableObject {
         let running = Set(MusicSource.allCases.filter(AppModel.isRunning))
         musicSource = PlayerFollower.choose(current: Preferences().lastMusicSource ?? .appleMusic, playing: [], running: running)
         layoutStore = LayoutStore(fileURL: layoutURL,
-                                  makeDefault: { .makeDefault(includeTailscale: AppModel.isTailscaleInstalled) })
+                                  makeDefault: { .makeDefault() })
         layout = layoutStore.load()
         if layoutStore.lastLoadFailed {
             DebugTools.log("layout: unreadable file, using the default (kept as \(layoutStore.lastBackupURL?.lastPathComponent ?? "-"))")

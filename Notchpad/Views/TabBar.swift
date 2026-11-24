@@ -2,8 +2,8 @@ import AppKit
 import NotchpadCore
 import SwiftUI
 
-/// The tab pills in the strip beside the notch. Tabs fill the left side first and continue
-/// right of the notch when the left is full. In edit mode: rename, delete, reorder, add,
+/// The tab pills in the strip beside the notch. Tabs stay together left of the notch (they give up
+/// padding, then shrink) and only continue right of it when even that doesn't fit. In edit mode: rename, delete, reorder, add,
 /// plus "Add widget" and "Done" on the far right.
 struct TabStrip: View {
     @ObservedObject var model: AppModel
@@ -80,7 +80,8 @@ struct TabStrip: View {
         let rightEnd = panelWidth - Self.edge - (editing ? controlsWidth + Self.spacing : 0)
         let plusWidth: CGFloat = editing ? 22 : 0
         let widths = tabs.map { tab -> CGFloat in
-            let text = tab.id == renamingID ? max(Self.textWidth(draft), 60) : Self.textWidth(tab.name)
+            // While renaming, just enough room for the name being typed (it grows as he types).
+            let text = tab.id == renamingID ? max(Self.textWidth(draft) + 4, 34) : Self.textWidth(tab.name)
             return text + 20
         }
         let placed = TabStripLayout.place(widths: widths, leftStart: leftStart, leftEnd: leftEnd,
@@ -95,6 +96,9 @@ struct TabStrip: View {
     @ViewBuilder private func pill(_ tab: TabPage, width: CGFloat) -> some View {
         let selected = model.selectedTabID == tab.id
         let deleting = confirmDeleteID == tab.id
+        // Side padding shrinks before the name gets cut, when the pills had to get narrower.
+        let shown = renamingID == tab.id ? draft : (deleting ? "Delete?" : tab.name)
+        let pad = max(3, min(10, (width - Self.textWidth(shown)) / 2))
         Group {
             if renamingID == tab.id {
                 TextField("", text: $draft)
@@ -105,7 +109,7 @@ struct TabStrip: View {
                     .focused($nameFocused)
                     .onSubmit { finishRename() }
                     .onChange(of: nameFocused) { _, focused in if !focused { finishRename() } }
-                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .padding(.horizontal, pad).padding(.vertical, 4)
                     .frame(width: width)
                     .background(Capsule().fill(Color.white))
             } else {
@@ -115,7 +119,7 @@ struct TabStrip: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .foregroundStyle(deleting ? Color.white : (selected ? Color.black : Color(white: 0.67)))
-                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .padding(.horizontal, pad).padding(.vertical, 4)
                         .frame(width: width)
                         .background(Capsule().fill(deleting ? Color.red : (selected ? Color.white : Color(red: 0.11, green: 0.11, blue: 0.13))))
                         .contentShape(Capsule())
@@ -125,7 +129,8 @@ struct TabStrip: View {
         }
         .overlay(Capsule().strokeBorder(Color.red, lineWidth: rejectedID == tab.id ? 2 : 0))
         .overlay(alignment: .topLeading) {
-            if editing, tabs.count > 1, renamingID != tab.id, !deleting {
+            // Also on the tab being renamed, so a tab just added with + can be deleted straight away.
+            if editing, tabs.count > 1, !deleting {
                 Button { deleteTapped(tab) } label: {
                     Image(systemName: "minus.circle.fill").font(.system(size: 11))
                         .foregroundStyle(.white, Color(white: 0.4))

@@ -40,8 +40,8 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         self.selectedTabID = selectedTabID
     }
 
-    /// The first-launch layout: Home, Reminders and (when Tailscale is installed) Tailscale.
-    public static func makeDefault(includeTailscale: Bool = true) -> PanelLayout {
+    /// The first-launch layout: one Home tab. Anyone can add more tabs (Reminders, Tailscale, …) in edit mode.
+    public static func makeDefault() -> PanelLayout {
         let home = TabPage(name: "Home", widgets: [
             WidgetPlacement(kind: .music, size: .small, column: 0, half: .top),
             WidgetPlacement(kind: .shelf, size: .small, column: 0, half: .bottom),
@@ -49,14 +49,7 @@ public struct PanelLayout: Codable, Equatable, Sendable {
             WidgetPlacement(kind: .nextEvent, size: .small, column: 2, half: .top),
             WidgetPlacement(kind: .focus, size: .small, column: 2, half: .bottom),
         ])
-        let reminders = TabPage(name: "Reminders", widgets: [
-            WidgetPlacement(kind: .reminders, size: .full, column: 0, half: .full),
-        ])
-        let tailscale = TabPage(name: "Tailscale", widgets: [
-            WidgetPlacement(kind: .tailscale, size: .full, column: 0, half: .full),
-        ])
-        return PanelLayout(tabs: includeTailscale ? [home, reminders, tailscale] : [home, reminders],
-                           selectedTabID: home.id)
+        return PanelLayout(tabs: [home], selectedTabID: home.id)
     }
 
     // MARK: Tabs

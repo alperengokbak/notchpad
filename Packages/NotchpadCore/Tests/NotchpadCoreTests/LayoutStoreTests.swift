@@ -120,6 +120,6 @@ private func shape(_ l: PanelLayout) -> [String] {
 }
 
 @Test func storeUsesInjectedDefault() {
-    let store = LayoutStore(fileURL: tempFile(), makeDefault: { .makeDefault(includeTailscale: false) })
-    #expect(store.load().tabs.map(\.name) == ["Home", "Reminders"])
+    let store = LayoutStore(fileURL: tempFile(), makeDefault: { .threeTabs() })
+    #expect(store.load().tabs.map(\.name) == ["Home", "Reminders", "Tailscale"])
 }

@@ -50,7 +50,7 @@ Each part of the panel is a widget, and you choose which widgets go on which tab
 
 Small is half a column, Medium is one column, Wide is two columns and Full is the whole tab.
 
-Click Done when you're finished. You can have up to four tabs, and the same widget can be on more than one tab. The first time you open Notchpad you get three tabs: Home, Reminders and Tailscale. If Tailscale isn't installed, you get only Home and Reminders, and you can still add the Tailscale widget from the gallery later. A widget only loads its data while it's on screen, so widgets on other tabs don't slow anything down.
+Click Done when you're finished. You can have up to four tabs, and the same widget can be on more than one tab. The first time you open Notchpad you get one tab, Home. Add more with the + next to your tabs, for example a Reminders tab with the Full reminders widget, or a Tailscale tab. New tabs go right after the last one, and when space gets tight the tabs get a little narrower instead of jumping across the notch. A widget only loads its data while it's on screen, so widgets on other tabs don't slow anything down.
 
 When there's no more room left of the notch, the next tabs go to the right of it. Your layout is saved in `~/Library/Application Support/Notchpad/layout.json`. If that file gets damaged, Notchpad starts with the default layout and keeps the damaged file next to it as `layout-broken-<date>.json`.
 

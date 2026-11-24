@@ -14,20 +14,19 @@ private func spot(_ p: WidgetPlacement?) -> String {
     return "\(p.kind.rawValue) \(p.size.rawValue) c\(p.column) \(p.half.rawValue)"
 }
 
-@Test func defaultMatchesTodaysLayout() {
+@Test func defaultIsHomeOnly() {
+    // New users start with one tab; Reminders and Tailscale tabs are theirs to add.
     let l = PanelLayout.makeDefault()
-    #expect(l.tabs.map(\.name) == ["Home", "Reminders", "Tailscale"])
+    #expect(l.tabs.map(\.name) == ["Home"])
     #expect(l.tabs[0].widgets.map(spot) == [
         "music small c0 top", "shelf small c0 bottom", "reminders medium c1 full",
         "nextEvent small c2 top", "focus small c2 bottom",
     ])
-    #expect(l.tabs[1].widgets.map(spot) == ["reminders full c0 full"])
-    #expect(l.tabs[2].widgets.map(spot) == ["tailscale full c0 full"])
     #expect(l.selectedTabID == l.tabs[0].id)
 }
 
 @Test func addTabNamesAndLimit() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let new = l.addTab()
     #expect(new != nil)
     #expect(l.tabs.last?.name == "Tab 1")
@@ -37,7 +36,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func renameRejectsBadNames() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let home = l.id("Home")
     for bad in ["", "   ", "ThirteenChars", "reminders"] {
         do { let r = l.renameTab(home, to: bad); #expect(!r) }
@@ -49,7 +48,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func deleteSelectedTabSelectsNeighbour() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     l.selectedTabID = l.id("Tailscale")
     do { let r = l.deleteTab(l.id("Tailscale")); #expect(r) }
     #expect(l.selectedTab.name == "Reminders")
@@ -59,7 +58,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func cannotDeleteLastTab() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     do { let r = l.deleteTab(l.id("Home")); #expect(r) }
     do { let r = l.deleteTab(l.id("Reminders")); #expect(r) }
     do { let r = l.deleteTab(l.id("Tailscale")); #expect(!r) }
@@ -67,7 +66,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func canAddReasons() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     #expect(l.canAdd(.music, size: .small, toTab: l.id("Home")) == .alreadyOnTab)
     #expect(l.canAdd(.tailscale, size: .medium, toTab: l.id("Home")) == .noRoom)
     #expect(l.canAdd(.music, size: .small, toTab: l.id("Reminders")) == .noRoom)
@@ -80,7 +79,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func addWidgetUsesFirstFreeSpot() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let t = l.addTab()!
     do { let r = l.addWidget(.music, size: .small, toTab: t); #expect(r) }
     do { let r = l.addWidget(.focus, size: .small, toTab: t); #expect(r) }
@@ -91,7 +90,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func removeWidget() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let home = l.id("Home")
     let focus = l.widget(.focus, on: "Home")!
     l.removeWidget(focus.id, fromTab: home)
@@ -100,7 +99,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func resizeKeepsColumnOrRefuses() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let home = l.id("Home")
     let reminders = l.widget(.reminders, on: "Home")!
     #expect(!l.canResize(reminders.id, to: .wide, inTab: home))
@@ -117,7 +116,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func resizeToSmallPicksFreeHalf() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let t = l.addTab()!
     do { let r = l.addWidget(.music, size: .medium, toTab: t); #expect(r) }
     let m = l.tab(t)!.widgets[0]
@@ -126,7 +125,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func moveIntoEmptySpot() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let t = l.addTab()!
     do { let r = l.addWidget(.music, size: .small, toTab: t); #expect(r) }
     let m = l.tab(t)!.widgets[0]
@@ -135,7 +134,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func moveSwaps() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let next = l.widget(.nextEvent, on: "Home")!
     do { let r = l.moveWidget(next.id, toColumn: 0, half: .top, inTab: l.id("Home")); #expect(r) }
     #expect(spot(l.widget(.nextEvent, on: "Home")) == "nextEvent small c0 top")
@@ -143,7 +142,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func moveSwapRefusedWhenItCannotFit() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let before = l
     let reminders = l.widget(.reminders, on: "Home")!
     do { let r = l.moveWidget(reminders.id, toColumn: 0, half: .full, inTab: l.id("Home")); #expect(!r) }
@@ -151,7 +150,7 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func moveSwapsMediumWithMedium() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     let t = l.addTab()!
     do { let r = l.addWidget(.reminders, size: .medium, toTab: t); #expect(r) }
     do { let r = l.addWidget(.tailscale, size: .medium, toTab: t); #expect(r) }
@@ -161,13 +160,13 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func moveTabReorders() {
-    var l = PanelLayout.makeDefault()
+    var l = PanelLayout.threeTabs()
     l.moveTab(from: 2, to: 0)
     #expect(l.tabs.map(\.name) == ["Tailscale", "Home", "Reminders"])
 }
 
 @Test func tabIndexMatching() {
-    let l = PanelLayout.makeDefault()
+    let l = PanelLayout.threeTabs()
     #expect(l.tabIndex(matching: "tailscale") == 2)
     #expect(l.tabIndex(matching: "TAILSCALE") == 2)
     #expect(l.tabIndex(matching: "2") == 1)
@@ -176,16 +175,10 @@ private func spot(_ p: WidgetPlacement?) -> String {
 }
 
 @Test func firstTabContaining() {
-    let l = PanelLayout.makeDefault()
+    let l = PanelLayout.threeTabs()
     #expect(l.firstTab(containing: .reminders) == l.id("Home"))
     #expect(l.firstTab(containing: .reminders, size: .full) == l.id("Reminders"))
     #expect(l.firstTab(containing: .tailscale, size: .medium) == nil)
-}
-
-@Test func defaultWithoutTailscaleHasTwoTabs() {
-    let l = PanelLayout.makeDefault(includeTailscale: false)
-    #expect(l.tabs.map(\.name) == ["Home", "Reminders"])
-    #expect(l.selectedTabID == l.tabs[0].id)
 }
 
 @Test func resizeToWideShiftsLeftWhenRoomy() {
@@ -203,4 +196,14 @@ private func spot(_ p: WidgetPlacement?) -> String {
     let tab = TabPage(name: "T", widgets: [shelf, reminders])
     let l = PanelLayout(tabs: [tab], selectedTabID: tab.id)
     #expect(!l.canResize(shelf.id, to: .wide, inTab: tab.id))
+}
+
+extension PanelLayout {
+    /// The old three-tab default (Home, Reminders, Tailscale): a handy fixture for tab tests.
+    static func threeTabs() -> PanelLayout {
+        var l = PanelLayout.makeDefault()
+        l.tabs.append(TabPage(name: "Reminders", widgets: [WidgetPlacement(kind: .reminders, size: .full, column: 0, half: .full)]))
+        l.tabs.append(TabPage(name: "Tailscale", widgets: [WidgetPlacement(kind: .tailscale, size: .full, column: 0, half: .full)]))
+        return l
+    }
 }
