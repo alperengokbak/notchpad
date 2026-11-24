@@ -19,8 +19,8 @@ targets:
       path: Notchpad/Info.plist
       properties:
         CFBundleDisplayName: Notchpad
-        CFBundleShortVersionString: "1.1.0"
-        CFBundleVersion: "3"
+        CFBundleShortVersionString: "1.2.0"
+        CFBundleVersion: "4"
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
         NSAppleEventsUsageDescription: Notchpad shows and controls the song playing in Apple Music or Spotify.

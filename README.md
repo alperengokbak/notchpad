@@ -8,6 +8,10 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
+## What's new in 1.2
+
+- **Shortcuts widget.** One-click icons for the apps, shortcuts and folders you use most. Add it from the widget gallery, then click the Add tile after the last icon to pick an app, one of your shortcuts from the Shortcuts app, or a folder such as Google Drive's "My Drive". Drop files on a folder icon to copy them into it.
+
 ## What's new in 1.1
 
 - **Add, change and delete reminders and events from the panel.** Click + to add one, or click a reminder or event to change it. To delete one without completing it, hover it, click the trash icon, then click Delete.
@@ -21,7 +25,7 @@ The video shows version 1.1: adding a reminder, jumping around a song with the d
 
 ## Download
 
-1. Download **Notchpad-1.1.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.2.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
