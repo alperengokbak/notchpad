@@ -238,7 +238,10 @@ final class AppModel: ObservableObject {
         } else {
             backgroundImage = backgroundStore.currentURL.flatMap(NSImage.init(contentsOf:))
         }
-        focusMinutes = Self.isDemo ? 25 : preferences.focusMinutes
+        // Demo: 25, or `--focus-minutes N` for launch video frames.
+        focusMinutes = Self.isDemo
+            ? FocusLength.clamp(DebugTools.argument(after: "--focus-minutes").flatMap(Int.init) ?? 25)
+            : preferences.focusMinutes
         lastFocusMinutes = focusMinutes
         // A song may already be playing at launch; no notification arrives for it until it changes.
         if showClosedMusic && isMusicRunning { refreshMusic() }
@@ -861,6 +864,12 @@ extension AppModel {
             artwork = DemoData.cover()
         }
         focus = CommandLine.arguments.contains("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
+        // Launch video frames: `--demo-song-position <seconds>` puts the made-up song there.
+        if let p = DebugTools.argument(after: "--demo-song-position").flatMap(Double.init), case .playing(var song) = music {
+            song.position = p
+            song.positionDate = now
+            music = .playing(song)
+        }
         reminderLists = [NamedList(id: "Personal", title: "Personal"), NamedList(id: "Shopping", title: "Shopping")]
         eventCalendars = [NamedList(id: "Home", title: "Home"), NamedList(id: "University", title: "University")]
         shelf.clear()

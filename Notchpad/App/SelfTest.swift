@@ -7,7 +7,13 @@ import NotchpadCore
 extension AppModel {
     func openEditorForDebug(_ kind: String) {
         switch kind {
-        case "new-reminder": newReminder()
+        case "new-reminder":
+            newReminder()
+            // `--editor-title <text>`: a title already typed in (launch video frames).
+            if let title = DebugTools.argument(after: "--editor-title"), case .reminder(var d)? = editor {
+                d.title = title
+                editor = .reminder(d)
+            }
         case "edit-reminder": if let r = reminders.first { editReminder(r.id) }
         case "new-event": newEvent()
         case "edit-event": if let e = events.first { editEvent(e) }
