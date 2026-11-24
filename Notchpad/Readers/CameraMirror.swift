@@ -14,6 +14,7 @@ final class CameraMirror: ObservableObject {
     private var configured = false
 
     func start() {
+        DebugTools.log("mirror: start pressed, state \(state), permission \(AVCaptureDevice.authorizationStatus(for: .video).rawValue)")
         guard state == .off || state == .denied else { return }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
@@ -23,7 +24,10 @@ final class CameraMirror: ObservableObject {
             AVCaptureDevice.requestAccess(for: .video) { granted in
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
-                    if granted { self.run() } else { self.state = .denied }
+                    guard granted else { self.state = .denied; return }
+                    // Answering macOS's question usually closes the panel (stop() sets .off).
+                    // Only start if the widget is still waiting; otherwise the next click starts it.
+                    if self.state == .starting { self.run() }
                 }
             }
         default:
@@ -67,18 +71,47 @@ final class CameraMirror: ObservableObject {
 struct CameraPreview: NSViewRepresentable {
     let session: AVCaptureSession
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        view.wantsLayer = true
-        let layer = AVCaptureVideoPreviewLayer(session: session)
-        layer.videoGravity = .resizeAspectFill
-        if let connection = layer.connection, connection.isVideoMirroringSupported {
-            connection.automaticallyAdjustsVideoMirroring = false
-            connection.isVideoMirrored = true
-        }
-        view.layer = layer
-        return view
-    }
+    func makeNSView(context: Context) -> PreviewView { PreviewView(session: session) }
+    func updateNSView(_ view: PreviewView, context: Context) {}
 
-    func updateNSView(_ view: NSView, context: Context) {}
+    final class PreviewView: NSView {
+        private let preview: AVCaptureVideoPreviewLayer
+
+        init(session: AVCaptureSession) {
+            preview = AVCaptureVideoPreviewLayer(session: session)
+            preview.videoGravity = .resizeAspectFill
+            super.init(frame: .zero)
+            wantsLayer = true
+            layer?.addSublayer(preview)
+        }
+
+        required init?(coder: NSCoder) { nil }
+
+        /// SwiftUI sizes this view by setting its frame (layout() isn't always called), so the
+        /// picture follows every size change here.
+        override func setFrameSize(_ newSize: NSSize) {
+            super.setFrameSize(newSize)
+            fitPreview()
+        }
+
+        override func layout() {
+            super.layout()
+            fitPreview()
+        }
+
+        private func fitPreview() {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            preview.frame = bounds
+            CATransaction.commit()
+            if let connection = preview.connection, connection.isVideoMirroringSupported, !connection.isVideoMirrored {
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.isVideoMirrored = true
+            }
+            DebugTools.log("mirror: preview \(Int(bounds.width))x\(Int(bounds.height)), connection \(preview.connection != nil)")
+        }
+
+        /// Clicks go through to the widget (so a click turns the camera off again).
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
 }
