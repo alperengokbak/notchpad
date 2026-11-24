@@ -9,11 +9,16 @@ public struct EventSummary: Equatable, Identifiable, Sendable {
     public var isAllDay: Bool
     /// Calendar colour, sRGB 0…1.
     public var red: Double, green: Double, blue: Double
+    /// The calendar it belongs to, for the editor's calendar menu.
+    public var calendarID: String
+    /// False for calendars that can't be changed (subscriptions, birthdays).
+    public var isEditable: Bool
 
     public init(id: String, title: String, start: Date, end: Date, isAllDay: Bool,
-                red: Double, green: Double, blue: Double) {
+                red: Double, green: Double, blue: Double, calendarID: String = "", isEditable: Bool = true) {
         self.id = id; self.title = title; self.start = start; self.end = end; self.isAllDay = isAllDay
         self.red = red; self.green = green; self.blue = blue
+        self.calendarID = calendarID; self.isEditable = isEditable
     }
 }
 

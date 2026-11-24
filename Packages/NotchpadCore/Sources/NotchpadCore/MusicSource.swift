@@ -52,6 +52,7 @@ public struct Preferences {
     private static let micKey = "showMicIndicator"
     private static let sourceKey = "lastMusicSource"
     private static let closedMusicKey = "showClosedMusic"
+    private static let focusMinutesKey = "focusMinutes"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -67,6 +68,12 @@ public struct Preferences {
     public var showClosedMusic: Bool {
         get { defaults.object(forKey: Self.closedMusicKey) as? Bool ?? true }
         nonmutating set { defaults.set(newValue, forKey: Self.closedMusicKey) }
+    }
+
+    /// Focus length picked with − / +. 25 until changed; always within 5…180.
+    public var focusMinutes: Int {
+        get { FocusLength.clamp(defaults.object(forKey: Self.focusMinutesKey) as? Int ?? 25) }
+        nonmutating set { defaults.set(FocusLength.clamp(newValue), forKey: Self.focusMinutesKey) }
     }
 
     /// The player the Music widget showed last, so its "Open" button opens the right app.

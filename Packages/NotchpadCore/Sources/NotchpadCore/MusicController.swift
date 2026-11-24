@@ -44,6 +44,11 @@ public final class MusicController: @unchecked Sendable {
         _ = tell(command.rawValue)
     }
 
+    /// Jumps to `seconds` into the current song. Both apps take seconds here.
+    public func seek(to seconds: TimeInterval) {
+        _ = tell("set player position to " + String(format: "%.1f", max(seconds, 0)))
+    }
+
     public func fetchPosition() -> TimeInterval? {
         tell("get player position")?.doubleValue
     }

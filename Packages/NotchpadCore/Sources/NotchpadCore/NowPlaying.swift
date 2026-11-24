@@ -35,6 +35,21 @@ public struct NowPlaying: Equatable, Sendable {
                           isPlaying: state == "Playing", positionDate: now)
     }
 
+    /// The same song after jumping to `seconds` (kept within the song), counted from `now`.
+    public func seeked(to seconds: TimeInterval, now: Date) -> NowPlaying {
+        var copy = self
+        let upper = duration ?? .greatestFiniteMagnitude
+        copy.position = min(max(seconds, 0), upper)
+        copy.positionDate = now
+        return copy
+    }
+
+    /// Where along the progress bar a click or drag is, 0…1.
+    public static func seekFraction(x: Double, width: Double) -> Double {
+        guard width > 0 else { return 0 }
+        return min(max(x / width, 0), 1)
+    }
+
     /// Where the song is at `date`: moves on while playing, never past the end.
     public func position(at date: Date) -> TimeInterval {
         let p = isPlaying ? position + date.timeIntervalSince(positionDate) : position

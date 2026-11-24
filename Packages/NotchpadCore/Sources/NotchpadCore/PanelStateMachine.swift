@@ -15,6 +15,7 @@ public struct PanelStateMachine: Sendable {
     private var pointerInside = false
     private var shelfDragActive = false
     private var editing = false
+    private var typing = false
     private var pendingOpenAt: TimeInterval?
     private var pendingCloseAt: TimeInterval?
 
@@ -61,6 +62,18 @@ public struct PanelStateMachine: Sendable {
         }
     }
 
+    /// While the reminder/event editor is open the panel stays open, like edit mode.
+    public mutating func setTyping(_ on: Bool, now: TimeInterval) {
+        typing = on
+        if on {
+            isOpen = true
+            pendingOpenAt = nil
+            pendingCloseAt = nil
+        } else if isOpen && !pointerInside {
+            scheduleClose(now: now)
+        }
+    }
+
     public mutating func tick(now: TimeInterval) {
         if let t = pendingOpenAt, now >= t {
             isOpen = true
@@ -73,7 +86,7 @@ public struct PanelStateMachine: Sendable {
     }
 
     private mutating func scheduleClose(now: TimeInterval) {
-        guard !forceOpen, !shelfDragActive, !editing else { return }
+        guard !forceOpen, !shelfDragActive, !editing, !typing else { return }
         if pendingCloseAt == nil { pendingCloseAt = now + closeDelay }
     }
 }
