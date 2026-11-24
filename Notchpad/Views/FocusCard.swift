@@ -1,7 +1,7 @@
 import NotchpadCore
 import SwiftUI
 
-/// Right column, bottom: start 25/50, pause/stop while running, break/again when done.
+/// Right column, bottom: − / + to pick the length and Start, pause/stop while running, break/again when done.
 struct FocusCard: View {
     let inputs: WidgetInputs
     private var focus: FocusTimer { inputs.focus }
@@ -12,9 +12,16 @@ struct FocusCard: View {
             switch focus.phase {
             case .idle:
                 label("FOCUS", dot: nil)
-                HStack(spacing: 6) {
-                    pill("25") { actions.startFocus(.focus, 25) }
-                    pill("50") { actions.startFocus(.focus, 50) }
+                HStack(spacing: 4) {
+                    icon("minus") { actions.stepFocus(-1) }
+                        .disabled(inputs.focusMinutes <= FocusLength.range.lowerBound)
+                    Text("\(inputs.focusMinutes) min")
+                        .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                        .frame(minWidth: 50)
+                    icon("plus") { actions.stepFocus(1) }
+                        .disabled(inputs.focusMinutes >= FocusLength.range.upperBound)
+                    Spacer(minLength: 4)
+                    pill("Start") { actions.startFocus(.focus, inputs.focusMinutes) }
                 }
             case .running(let kind, _), .paused(let kind, _):
                 label(kind == .focus ? "FOCUS" : "BREAK", dot: kind == .focus ? .red : .green)

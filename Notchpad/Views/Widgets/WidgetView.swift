@@ -19,7 +19,7 @@ struct WidgetView: View {
         switch (kind, size) {
         case (.music, .small):
             MusicView(state: inputs.music, artwork: inputs.artwork, now: inputs.now,
-                      onCommand: a.music, onOpenMusic: a.openMusic, appName: inputs.musicAppName)
+                      onCommand: a.music, onOpenMusic: a.openMusic, onSeek: a.seekMusic, appName: inputs.musicAppName)
         case (.music, _):
             MusicMedium(inputs: inputs)
         case (.shelf, .small):
@@ -35,9 +35,10 @@ struct WidgetView: View {
         case (.reminders, _):
             RemindersSection(inputs: inputs)
         case (.nextEvent, .small):
-            NextEventView(events: inputs.events, access: inputs.calendarAccess)
+            NextEventView(events: inputs.events, access: inputs.calendarAccess,
+                          onNew: a.newEvent, onEdit: a.editEvent)
         case (.nextEvent, _):
-            TodayEventsView(events: inputs.events, access: inputs.calendarAccess)
+            TodayEventsView(inputs: inputs)
         case (.focus, _):
             FocusCard(inputs: inputs)
         case (.tailscale, .full):
@@ -56,19 +57,19 @@ private struct MusicMedium: View {
     var body: some View {
         MusicView(state: inputs.music, artwork: inputs.artwork, now: inputs.now,
                   onCommand: inputs.actions.music, onOpenMusic: inputs.actions.openMusic,
-                  appName: inputs.musicAppName, large: true)
+                  onSeek: inputs.actions.seekMusic, appName: inputs.musicAppName, large: true)
     }
 }
 
-/// Next event, Medium: the rest of today's events.
+/// Next event, Medium: the rest of today's events. Click one to edit it; "+" adds one.
 private struct TodayEventsView: View {
-    let events: [EventSummary]
-    let access: CalendarAccess
+    let inputs: WidgetInputs
+    private var events: [EventSummary] { inputs.events }
+    private var access: CalendarAccess { inputs.calendarAccess }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("TODAY").font(.system(size: 10, weight: .medium)).tracking(0.6)
-                .foregroundStyle(Color(white: 0.55))
+            EventHeader(title: "TODAY", access: access, onNew: inputs.actions.newEvent)
             switch access {
             case .denied:
                 Text("Calendar off").font(.system(size: 12)).foregroundStyle(Color(white: 0.6))
@@ -79,23 +80,8 @@ private struct TodayEventsView: View {
                     Text("Nothing else today").font(.system(size: 12)).foregroundStyle(Color(white: 0.6))
                 }
                 ForEach(events) { e in
-                    HStack(alignment: .top, spacing: 6) {
-                        RoundedRectangle(cornerRadius: 1.5).fill(Color(red: e.red, green: e.green, blue: e.blue))
-                            .frame(width: 3)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(e.title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
-                            Text(DayEvents.timeText(e, calendar: .current))
-                                .font(.system(size: 11)).foregroundStyle(Color(white: 0.6))
-                        }
-                    }
-                    .fixedSize(horizontal: false, vertical: true)
+                    EventRow(event: e) { inputs.actions.editEvent(e) }
                 }
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.iCal") {
-                NSWorkspace.shared.openApplication(at: url, configuration: .init())
             }
         }
     }

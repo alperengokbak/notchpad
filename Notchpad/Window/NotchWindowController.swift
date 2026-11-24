@@ -33,6 +33,7 @@ final class NotchWindowController {
             self.sync()
         }
         model.onEditingChanged = { [weak self] on in self?.setEditing(on) }
+        model.onTypingChanged = { [weak self] on in self?.setTyping(on) }
         galleryWatch = model.$showGallery.removeDuplicates().sink { [weak self] show in
             DispatchQueue.main.async { self?.setGalleryVisible(show) }
         }
@@ -87,6 +88,19 @@ final class NotchWindowController {
             host.frame = NSRect(origin: .zero, size: openRect.size)
             p.contentView = host
             panel = p
+            // He clicked another app while the editor was open: drop the editor so the panel can close.
+            NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: p,
+                                                   queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    // Checked a moment later: a menu or picker opening inside the panel gives focus straight back.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        guard let self, self.model.editor != nil, !self.model.isEditing,
+                              self.panel?.isKeyWindow != true else { return }
+                        DebugTools.log("editor: lost focus")
+                        self.model.cancelEditor()
+                    }
+                }
+            }
         }
         panel?.setFrame(openRect, display: true)
         panel?.orderFrontRegardless()
@@ -95,7 +109,29 @@ final class NotchWindowController {
     /// Edit mode holds the panel open and lets it take typing; Done hands focus back.
     private func setEditing(_ on: Bool) {
         machine.setEditing(on, now: ProcessInfo.processInfo.systemUptime)
-        if on {
+        updateKeyFocus()
+        sync()
+    }
+
+    /// The reminder/event editor: same as edit mode, the panel stays open and takes typing until it closes.
+    private func setTyping(_ on: Bool) {
+        machine.setTyping(on, now: ProcessInfo.processInfo.systemUptime)
+        updateKeyFocus()
+        sync()
+    }
+
+    /// Whether the panel currently holds keyboard focus (edit mode or the editor).
+    private var hasKeyFocus = false
+
+    /// Takes keyboard focus while edit mode or the editor needs it; hands it back to his app after.
+    private func updateKeyFocus() {
+        let want = model.isEditing || model.editor != nil
+        guard want != hasKeyFocus else {
+            if want { panel?.makeKey() }
+            return
+        }
+        hasKeyFocus = want
+        if want {
             let front = NSWorkspace.shared.frontmostApplication
             if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier { frontAppBeforeEdit = front }
             panel?.allowsKey = true
@@ -108,7 +144,6 @@ final class NotchWindowController {
             if NSApp.isActive { frontAppBeforeEdit?.activate() }
             frontAppBeforeEdit = nil
         }
-        sync()
     }
 
     private func setGalleryVisible(_ show: Bool) {

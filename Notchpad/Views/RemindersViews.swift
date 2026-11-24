@@ -9,6 +9,8 @@ struct ReminderRow: View {
     let isOverdue: Bool
     let pending: Bool
     let onTick: () -> Void
+    /// Clicking the title opens the editor.
+    var onEdit: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 7) {
@@ -19,14 +21,21 @@ struct ReminderRow: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            Text(reminder.title).font(.system(size: 12, weight: .medium)).lineLimit(1)
-                .strikethrough(pending).foregroundStyle(pending ? Color(white: 0.5) : .white)
-            Spacer(minLength: 4)
-            if let label {
-                Text(label).font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(isOverdue ? Color.red : Color(white: 0.55))
-                    .lineLimit(1).fixedSize()
+            Button(action: onEdit) {
+                HStack(spacing: 4) {
+                    Text(reminder.title).font(.system(size: 12, weight: .medium)).lineLimit(1)
+                        .strikethrough(pending).foregroundStyle(pending ? Color(white: 0.5) : .white)
+                    Spacer(minLength: 4)
+                    if let label {
+                        Text(label).font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(isOverdue ? Color.red : Color(white: 0.55))
+                            .lineLimit(1).fixedSize()
+                    }
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .help("Edit")
         }
     }
 }
@@ -55,6 +64,10 @@ struct RemindersSection: View {
                 .foregroundStyle(Color(white: 0.55)).contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .trailing) {
+                if inputs.remindersAccess == .granted { AddButton(help: "New reminder") { inputs.actions.newReminder() } }
+            }
             switch inputs.remindersAccess {
             case .denied: accessOff()
             case .unknown: EmptyView()
@@ -68,7 +81,8 @@ struct RemindersSection: View {
                                     label: ReminderLogic.dueLabel(r, now: inputs.now, calendar: .current),
                                     isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
                                     pending: inputs.pendingReminderIDs.contains(r.id),
-                                    onTick: { inputs.actions.tickReminder(r.id) })
+                                    onTick: { inputs.actions.tickReminder(r.id) },
+                                    onEdit: { inputs.actions.editReminder(r.id) })
                     }
                 }
             }
@@ -86,6 +100,9 @@ struct RemindersTab: View {
                 Text("REMINDERS").font(.system(size: 10, weight: .medium)).tracking(0.6)
                     .foregroundStyle(Color(white: 0.55))
                 Spacer()
+                if inputs.remindersAccess == .granted {
+                    AddButton(help: "New reminder") { inputs.actions.newReminder() }.padding(.trailing, 6)
+                }
                 Button {
                     if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.reminders") {
                         NSWorkspace.shared.openApplication(at: url, configuration: .init())
@@ -110,7 +127,8 @@ struct RemindersTab: View {
                                             label: ReminderLogic.dueLabel(r, now: inputs.now, calendar: .current),
                                             isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
                                             pending: inputs.pendingReminderIDs.contains(r.id),
-                                            onTick: { inputs.actions.tickReminder(r.id) })
+                                            onTick: { inputs.actions.tickReminder(r.id) },
+                                    onEdit: { inputs.actions.editReminder(r.id) })
                             }
                         }
                     }
@@ -118,5 +136,23 @@ struct RemindersTab: View {
                 }
             }
         }
+    }
+}
+
+/// The small "+" in a widget header.
+struct AddButton: View {
+    var help = "Add"
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "plus").font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Color(white: 0.75))
+                .frame(width: 18, height: 18)
+                .background(Circle().fill(Color(white: 0.18)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 }

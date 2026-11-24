@@ -196,3 +196,9 @@ private func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 0, _ min: Int = 0) ->
     s.tick(now: 5)
     #expect(s.isOpen)
 }
+
+@Test func reminderNewLateEveningStaysToday() {
+    let d = ReminderDraft.new(listID: "L", now: date(2026, 11, 24, 23, 40), calendar: london)
+    #expect(london.isDate(d.due, inSameDayAs: date(2026, 11, 24)))
+    #expect(!d.hasTime)
+}

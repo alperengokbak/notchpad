@@ -9,6 +9,8 @@ struct MusicView: View {
     let now: Date
     let onCommand: (MusicCommand) -> Void
     let onOpenMusic: () -> Void
+    /// Dragging the dot (or clicking the bar) jumps to that point of the song.
+    var onSeek: (TimeInterval) -> Void = { _ in }
     /// "Music" or "Spotify".
     var appName = "Music"
     /// Medium size: larger artwork, progress and controls under it across the full width.
@@ -31,8 +33,9 @@ struct MusicView: View {
                 cover
                 VStack(alignment: .leading, spacing: 2) {
                     titles
-                    progress.padding(.top, 4)
-                    controls.padding(.top, 2)
+                    // The bar carries its own room around the dot, so no extra padding here.
+                    progress
+                    controls
                 }
             }
         }
@@ -64,17 +67,9 @@ struct MusicView: View {
     }
 
     private var progress: some View {
-        let fraction: Double = {
-            guard let track, let d = track.duration, d > 0 else { return 0 }
-            return track.position(at: now) / d
-        }()
-        return GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color(white: 0.2))
-                Capsule().fill(Color.white).frame(width: geo.size.width * fraction)
-            }
-        }
-        .frame(height: 4)
+        let duration = track?.duration ?? 0
+        let fraction = duration > 0 ? (track?.position(at: now) ?? 0) / duration : 0
+        return ScrubBar(fraction: fraction, duration: duration, showTimes: large) { onSeek($0) }
     }
 
     private var controls: some View {
@@ -93,5 +88,64 @@ struct MusicView: View {
             Image(systemName: symbol).font(.system(size: size)).frame(width: 22, height: 22).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// The progress bar with a dot. Drag the dot, or click anywhere on the bar, to jump there.
+/// The dot follows the pointer while dragging; the song moves when the drag ends.
+struct ScrubBar: View {
+    let fraction: Double
+    /// Song length in seconds; 0 = unknown, then the bar can't be dragged.
+    let duration: TimeInterval
+    /// Elapsed and total time under the bar (Medium size).
+    var showTimes = false
+    let onSeek: (TimeInterval) -> Void
+
+    @State private var dragFraction: Double?
+
+    private var enabled: Bool { duration > 0 }
+
+    var body: some View {
+        VStack(spacing: 3) {
+            GeometryReader { geo in
+                let f = min(max(dragFraction ?? fraction, 0), 1)
+                let dot: CGFloat = dragFraction == nil ? 9 : 11
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(white: 0.2)).frame(height: 4)
+                    Capsule().fill(Color.white).frame(width: geo.size.width * f, height: 4)
+                    if enabled {
+                        Circle().fill(Color.white).frame(width: dot, height: dot)
+                            .shadow(color: .black.opacity(0.4), radius: 1.5)
+                            .offset(x: min(max(geo.size.width * f - dot / 2, 0), geo.size.width - dot))
+                    }
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { dragFraction = NowPlaying.seekFraction(x: $0.location.x, width: geo.size.width) }
+                        .onEnded { value in
+                            let f = NowPlaying.seekFraction(x: value.location.x, width: geo.size.width)
+                            dragFraction = nil
+                            onSeek(f * duration)
+                        },
+                    including: enabled ? .all : .none)
+            }
+            .frame(height: 10)
+            if showTimes && enabled {
+                HStack {
+                    Text(Self.time((dragFraction ?? fraction) * duration))
+                    Spacer()
+                    Text(enabled ? Self.time(duration) : "")
+                }
+                .font(.system(size: 10).monospacedDigit())
+                .foregroundStyle(Color(white: 0.55))
+            }
+        }
+    }
+
+    static func time(_ seconds: TimeInterval) -> String {
+        let s = max(0, Int(seconds.rounded(.down)))
+        return String(format: "%d:%02d", s / 60, s % 60)
     }
 }

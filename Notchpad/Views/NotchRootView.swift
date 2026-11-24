@@ -65,9 +65,17 @@ struct NotchRootView: View {
         }
     }
 
-    private var content: some View {
-        WidgetGridView(page: model.layout.selectedTab, inputs: model.widgetInputs(dropTargeted: dropTargeted),
-                       editor: model.isEditing ? editor : nil)
+    @ViewBuilder private var content: some View {
+        if let item = model.editor {
+            ItemEditor(item: item, lists: item.isReminder ? model.reminderLists : model.eventCalendars,
+                       error: model.editorError,
+                       onSave: { model.saveEditor($0) }, onDelete: { model.deleteEditorItem($0) },
+                       onCancel: { model.cancelEditor() })
+                .id(model.editorToken)
+        } else {
+            WidgetGridView(page: model.layout.selectedTab, inputs: model.widgetInputs(dropTargeted: dropTargeted),
+                           editor: model.isEditing ? editor : nil)
+        }
     }
 
     private var editor: GridEditor {

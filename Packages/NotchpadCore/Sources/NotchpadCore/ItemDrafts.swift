@@ -16,10 +16,12 @@ public struct ReminderDraft: Equatable, Sendable {
         self.hasDue = hasDue; self.due = due; self.hasTime = hasTime
     }
 
-    /// Empty title, due today (date only) in the given list.
+    /// Empty title, due today (date only) in the given list. The time part is the next full hour,
+    /// ready if he ticks Time, except after 23:00, where that hour would already be tomorrow.
     public static func new(listID: String, now: Date, calendar: Calendar) -> ReminderDraft {
-        ReminderDraft(id: nil, title: "", listID: listID, hasDue: true,
-                      due: EventDraft.nextHour(after: now, calendar: calendar), hasTime: false)
+        let next = EventDraft.nextHour(after: now, calendar: calendar)
+        let due = calendar.isDate(next, inSameDayAs: now) ? next : now
+        return ReminderDraft(id: nil, title: "", listID: listID, hasDue: true, due: due, hasTime: false)
     }
 
     public init(editing r: ReminderSummary, now: Date, calendar: Calendar) {

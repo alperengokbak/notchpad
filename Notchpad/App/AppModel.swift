@@ -110,6 +110,23 @@ final class AppModel: ObservableObject {
         NotchGeometry.wings(focus: focus.isActive, mic: mic.isActive, music: showClosedMusic && music.isPlaying)
     }
     private(set) var lastFocusMinutes = 25
+    /// Focus length picked with − / + (remembered between launches).
+    @Published var focusMinutes = 25 {
+        didSet { if focusMinutes != oldValue { preferences.focusMinutes = focusMinutes } }
+    }
+
+    /// The reminder/event editor over the widgets. Open = the panel stays open and takes typing.
+    @Published var editor: EditorItem? {
+        didSet { if (editor == nil) != (oldValue == nil) { onTypingChanged?(editor != nil) } }
+    }
+    /// Bumped every time the editor opens, so its fields start fresh.
+    @Published private(set) var editorToken = 0
+    /// Set by the window controller: holds the panel open and gives it keyboard focus.
+    var onTypingChanged: ((Bool) -> Void)?
+    @Published private(set) var reminderLists: [NamedList] = []
+    @Published private(set) var eventCalendars: [NamedList] = []
+    /// Shown in the editor when EventKit refused a change.
+    @Published var editorError: String?
     private var focusTicker: Timer?
     private var askedNotificationPermission = false
     @Published var reminders: [ReminderSummary] = []
@@ -136,8 +153,8 @@ final class AppModel: ObservableObject {
     /// Set by the window controller: keeps the panel open while a file is dragged out.
     var onShelfDragActive: ((Bool) -> Void)?
 
-    private let calendarReader = CalendarReader()
-    private lazy var remindersReader = RemindersReader(store: calendarReader.store)
+    let calendarReader = CalendarReader()
+    lazy var remindersReader = RemindersReader(store: calendarReader.store)
     private let musicQueue = DispatchQueue(label: "notchpad.music")
     private let musicControllers: [MusicSource: MusicController] = Dictionary(uniqueKeysWithValues:
         MusicSource.allCases.map { source in
@@ -197,6 +214,8 @@ final class AppModel: ObservableObject {
             self.updateFocusTicker()
         }
         showClosedMusic = preferences.showClosedMusic
+        focusMinutes = preferences.focusMinutes
+        lastFocusMinutes = focusMinutes
         // A song may already be playing at launch; no notification arrives for it until it changes.
         if showClosedMusic && isMusicRunning { refreshMusic() }
         showMicIndicator = Self.micIndicatorAvailable && preferences.showMicIndicator
@@ -365,6 +384,18 @@ final class AppModel: ObservableObject {
         musicQueue.async { controller.send(command) }
     }
 
+    /// Jumps within the current song. The bar moves at once; the player follows a moment later.
+    func seekMusic(to seconds: TimeInterval) {
+        guard case .playing(let song) = music, song.duration != nil else { return }
+        let now = Date()
+        music = .playing(song.seeked(to: seconds, now: now))
+        clock = now
+        DebugTools.log("seek: \(Int(seconds))")
+        guard !Self.isDemo else { return }
+        let controller = musicController
+        musicQueue.async { controller.seek(to: seconds) }
+    }
+
     /// The Reminders heading: jump to the tab with the full list, or open the Reminders app if there isn't one.
     func openFullReminders() {
         if let id = layout.firstTab(containing: .reminders, size: .full) {
@@ -491,8 +522,15 @@ final class AppModel: ObservableObject {
 
     // MARK: Focus timer
 
+    /// − / + on the focus widget.
+    func stepFocus(_ direction: Int) {
+        focusMinutes = FocusLength.step(focusMinutes, by: direction)
+        DebugTools.log("focus minutes: \(focusMinutes)")
+    }
+
     func startFocus(_ kind: FocusKind, minutes: Int) {
         if kind == .focus { lastFocusMinutes = minutes }
+        DebugTools.log("focus start: \(minutes)")
         focus.start(kind, minutes: minutes, now: Date())
         clock = Date()
         askForNotificationsOnce()
@@ -573,12 +611,117 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Editor (add, change, delete reminders and events)
+
+    func newReminder() {
+        guard !isEditing else { return }
+        if !Self.isDemo { reminderLists = remindersReader.writableLists() }
+        let listID = (Self.isDemo ? nil : remindersReader.defaultListID) ?? reminderLists.first?.id ?? "Personal"
+        openEditor(.reminder(ReminderDraft.new(listID: listID, now: Date(), calendar: .current)))
+    }
+
+    func editReminder(_ id: String) {
+        guard !isEditing, let r = reminders.first(where: { $0.id == id }) else { return }
+        if !Self.isDemo { reminderLists = remindersReader.writableLists() }
+        openEditor(.reminder(ReminderDraft(editing: r, now: Date(), calendar: .current)))
+    }
+
+    func newEvent() {
+        guard !isEditing else { return }
+        if !Self.isDemo { eventCalendars = calendarReader.writableCalendars() }
+        let calID = (Self.isDemo ? nil : calendarReader.defaultCalendarID) ?? eventCalendars.first?.id ?? ""
+        openEditor(.event(EventDraft.new(calendarID: calID, now: Date(), calendar: .current), readOnly: false))
+    }
+
+    func editEvent(_ e: EventSummary) {
+        guard !isEditing else { return }
+        if !Self.isDemo { eventCalendars = calendarReader.writableCalendars() }
+        openEditor(.event(EventDraft(editing: e), readOnly: !e.isEditable))
+    }
+
+    private func openEditor(_ item: EditorItem) {
+        editorError = nil
+        editorToken += 1
+        editor = item
+        DebugTools.log("editor: \(item.logName)")
+    }
+
+    func cancelEditor() {
+        guard editor != nil else { return }
+        editor = nil
+        editorError = nil
+        DebugTools.log("editor: closed")
+    }
+
+    /// Saves what the editor shows. Keeps the editor open with a message if EventKit refuses.
+    func saveEditor(_ item: EditorItem) {
+        let ok: Bool
+        switch item {
+        case .reminder(let d):
+            ok = Self.isDemo ? demoSave(d) : remindersReader.save(d)
+            if ok { refreshReminders() }
+        case .event(let d, let readOnly):
+            ok = !readOnly && (Self.isDemo ? demoSave(d) : calendarReader.save(d))
+            if ok { refreshEvents() }
+        }
+        DebugTools.log("editor save ok=\(ok)")
+        if ok { cancelEditor() } else { editorError = "Couldn't save" }
+    }
+
+    func deleteEditorItem(_ item: EditorItem) {
+        let ok: Bool
+        switch item {
+        case .reminder(let d):
+            guard let id = d.id else { return cancelEditor() }
+            ok = Self.isDemo ? { reminders.removeAll { $0.id == id }; return true }() : remindersReader.delete(id)
+            if ok { reminders.removeAll { $0.id == id }; refreshReminders() }
+        case .event(let d, let readOnly):
+            guard let id = d.id, !readOnly else { return cancelEditor() }
+            ok = Self.isDemo ? { events.removeAll { $0.id == id }; return true }()
+                : calendarReader.delete(id, occurrence: d.occurrenceStart)
+            if ok { refreshEvents() }
+        }
+        DebugTools.log("editor delete ok=\(ok)")
+        if ok { cancelEditor() } else { editorError = "Couldn't delete" }
+    }
+
+    private func demoSave(_ d: ReminderDraft) -> Bool {
+        let summary = ReminderSummary(id: d.id ?? UUID().uuidString, title: d.trimmedTitle, listID: d.listID,
+                                      listTitle: reminderLists.first { $0.id == d.listID }?.title ?? d.listID, listOrder: 0,
+                                      due: d.hasDue ? d.due : nil, dueHasTime: d.hasTime)
+        if let i = reminders.firstIndex(where: { $0.id == summary.id }) { reminders[i] = summary } else { reminders.append(summary) }
+        return true
+    }
+
+    private func demoSave(_ d: EventDraft) -> Bool {
+        let e = EventSummary(id: d.id ?? UUID().uuidString, title: d.trimmedTitle, start: d.start, end: d.end,
+                             isAllDay: d.isAllDay, red: 0.04, green: 0.52, blue: 1, calendarID: d.calendarID)
+        if let i = events.firstIndex(where: { $0.id == e.id }) { events[i] = e } else { events.append(e) }
+        events.sort { $0.start < $1.start }
+        return true
+    }
+
     private func refreshEvents() {
         guard !Self.isDemo else { return }
         calendarAccess = calendarReader.access
         events = DayEvents.upcoming(calendarReader.todaysEvents(now: Date()), now: Date(), calendar: .current)
     }
 
+}
+
+/// What the editor over the widgets is showing.
+enum EditorItem: Equatable {
+    case reminder(ReminderDraft)
+    case event(EventDraft, readOnly: Bool)
+
+    var isReminder: Bool { if case .reminder = self { true } else { false } }
+
+    var logName: String {
+        switch self {
+        case .reminder(let d): d.id == nil ? "new reminder" : "edit reminder"
+        case .event(let d, let ro): ro ? "read-only event" : (d.id == nil ? "new event" : "edit event")
+        }
+    }
 }
 
 private extension MusicState {
@@ -608,7 +751,9 @@ extension AppModel {
             music = .playing(DemoData.song(now: now))
             artwork = DemoData.cover()
         }
-        focus = DemoData.focus(now: now)
+        focus = CommandLine.arguments.contains("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
+        reminderLists = [NamedList(id: "Personal", title: "Personal"), NamedList(id: "Shopping", title: "Shopping")]
+        eventCalendars = [NamedList(id: "Home", title: "Home"), NamedList(id: "University", title: "University")]
         shelf.clear()
         shelf.add(DemoData.files())
     }

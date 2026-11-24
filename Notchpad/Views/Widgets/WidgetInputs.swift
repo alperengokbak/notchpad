@@ -15,6 +15,12 @@ struct WidgetActions {
     var connectTailscale: (Bool) -> Void = { _ in }
     var copyIP: (TailscaleDevice) -> Void = { _ in }
     var shelfDragActive: (Bool) -> Void = { _ in }
+    var newReminder: () -> Void = {}
+    var editReminder: (String) -> Void = { _ in }
+    var newEvent: () -> Void = {}
+    var editEvent: (EventSummary) -> Void = { _ in }
+    var seekMusic: (TimeInterval) -> Void = { _ in }
+    var stepFocus: (Int) -> Void = { _ in }
 
     static let none = WidgetActions()
 }
@@ -34,6 +40,8 @@ struct WidgetInputs {
     var calendarAccess: CalendarAccess
     var focus: FocusTimer
     var lastFocusMinutes: Int
+    /// The length − / + has picked.
+    var focusMinutes: Int = 25
     var tailscale: TailscaleStatus?
     var tailscaleBusy: Bool
     var tailscaleMessage: String?
@@ -56,11 +64,17 @@ extension AppModel {
         actions.connectTailscale = { [weak self] in self?.connectTailscale($0) }
         actions.copyIP = { [weak self] in self?.copyIP($0) }
         actions.shelfDragActive = { [weak self] in self?.onShelfDragActive?($0) }
+        actions.newReminder = { [weak self] in self?.newReminder() }
+        actions.editReminder = { [weak self] in self?.editReminder($0) }
+        actions.newEvent = { [weak self] in self?.newEvent() }
+        actions.editEvent = { [weak self] in self?.editEvent($0) }
+        actions.seekMusic = { [weak self] in self?.seekMusic(to: $0) }
+        actions.stepFocus = { [weak self] in self?.stepFocus($0) }
         return WidgetInputs(music: music, musicAppName: musicSource.appName, artwork: artwork, now: clock,
                             reminders: reminders, remindersAccess: remindersAccess,
                             pendingReminderIDs: pendingReminderIDs,
                             events: events, calendarAccess: calendarAccess,
-                            focus: focus, lastFocusMinutes: lastFocusMinutes,
+                            focus: focus, lastFocusMinutes: lastFocusMinutes, focusMinutes: focusMinutes,
                             tailscale: tailscale, tailscaleBusy: tailscaleBusy,
                             tailscaleMessage: tailscaleMessage, copiedDeviceID: copiedDeviceID,
                             shelf: shelf, shelfDropTargeted: dropTargeted, actions: actions)

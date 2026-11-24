@@ -1,6 +1,12 @@
 import EventKit
 import NotchpadCore
 
+/// A reminders list or a calendar, for the editor's menu.
+struct NamedList: Identifiable, Equatable {
+    let id: String
+    let title: String
+}
+
 /// Reads and ticks off reminders. The Reminders app doesn't need to be open.
 @MainActor
 final class RemindersReader {
@@ -49,6 +55,47 @@ final class RemindersReader {
             completion((reminders ?? []).map {
                 ($0.calendarItemIdentifier, $0.title ?? "", $0.calendar.calendarIdentifier, $0.calendar.title, $0.dueDateComponents)
             })
+        }
+    }
+
+    /// Lists that can take new or changed reminders, in the Reminders app's order.
+    func writableLists() -> [NamedList] {
+        store.calendars(for: .reminder).filter(\.allowsContentModifications)
+            .map { NamedList(id: $0.calendarIdentifier, title: $0.title) }
+    }
+
+    var defaultListID: String? { store.defaultCalendarForNewReminders()?.calendarIdentifier }
+
+    /// Adds a new reminder or changes an existing one. Returns false if EventKit refused.
+    func save(_ draft: ReminderDraft, calendar: Calendar = .current) -> Bool {
+        guard access == .granted, draft.canSave else { return false }
+        let reminder = draft.id.flatMap { store.calendarItem(withIdentifier: $0) as? EKReminder }
+            ?? EKReminder(eventStore: store)
+        reminder.title = draft.trimmedTitle
+        if let list = store.calendar(withIdentifier: draft.listID), list.allowsContentModifications {
+            reminder.calendar = list
+        } else if reminder.calendar == nil {
+            reminder.calendar = store.defaultCalendarForNewReminders()
+        }
+        reminder.dueDateComponents = draft.dueComponents(calendar: calendar)
+        do {
+            try store.save(reminder, commit: true)
+            return true
+        } catch {
+            DebugTools.log("reminder save failed: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    /// Deletes one reminder, found by its identifier.
+    func delete(_ id: String) -> Bool {
+        guard let reminder = store.calendarItem(withIdentifier: id) as? EKReminder else { return false }
+        do {
+            try store.remove(reminder, commit: true)
+            return true
+        } catch {
+            DebugTools.log("reminder delete failed: \(error.localizedDescription)")
+            return false
         }
     }
 

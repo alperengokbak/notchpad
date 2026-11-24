@@ -18,6 +18,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.start()
         windowController = controller
         if CommandLine.arguments.contains("--edit") { model.beginEditing() }
+        if let kind = DebugTools.argument(after: "--editor") { model.openEditorForDebug(kind) }
+        if CommandLine.arguments.contains("--selftest-write") {
+            Task { await model.runWriteSelfTest(); NSApp.terminate(nil) }
+        }
         if CommandLine.arguments.contains("--gallery") {
             model.beginEditing()
             model.showGallery = true

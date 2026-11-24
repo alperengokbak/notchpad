@@ -22,12 +22,12 @@ If you'd rather build it yourself, see [Build](#build).
 
 ## What's in the panel
 
-- **Music:** the song playing in Apple Music or Spotify, with its cover, a progress bar, and previous, play/pause and next. If you use both, it shows whichever one is playing. When both are paused it stays on the one you used last. Notchpad never starts either app by itself. If the app is closed, there's an "Open Music" or "Open Spotify" button.
+- **Music:** the song playing in Apple Music or Spotify, with its cover, a progress bar, and previous, play/pause and next. Drag the white dot on the progress bar, or click anywhere on the bar, to jump to that point in the song. If you use both, it shows whichever one is playing. When both are paused it stays on the one you used last. Notchpad never starts either app by itself. If the app is closed, there's an "Open Music" or "Open Spotify" button.
 - **Shelf:** drag files onto the notch and they wait there until you drag them out somewhere else. The shelf keeps a link to the original file (no copies) and is still there after a restart. When you drag a file towards the closed notch, the panel opens by itself. Hover a file and click the blue AirDrop icon to send it to your iPhone or another Mac, or right-click the panel for "AirDrop all files". If the tab on screen has no Shelf when you drop a file, the panel switches to a tab that has one.
-- **Reminders:** your overdue and soonest reminders from every list, with a circle to tick them off. Click the Reminders heading to jump to the tab with the full list. The Reminders app doesn't need to be open.
-- **Next:** your next event today, from every calendar the Calendar app shows. At Medium size it lists your next three events today instead of one.
+- **Reminders:** your overdue and soonest reminders from every list, with a circle to tick them off. Click the + to add a reminder, or click a reminder to change its title, due date, time or list, or to delete it. In the editor, Return saves and Esc cancels. Click the Reminders heading to jump to the tab with the full list. The Reminders app doesn't need to be open.
+- **Next:** your next event today, from every calendar the Calendar app shows. At Medium size it lists your next three events today instead of one. Click the + to add an event, or click an event to change its title, time or calendar, or to delete it. For a repeating event, only that one occurrence changes. Events from calendars you can't change (subscriptions, birthdays) open read-only, with a button to open them in Calendar.
 - **Music on the closed notch:** while a song plays in Apple Music or Spotify, its cover sits left of the closed notch and four small bars move on the right. Pause the song and both disappear. Hover either side to open the panel. If you don't want it, right-click the open panel and untick "Show music on closed notch". Notchpad then fetches nothing extra while the panel is closed.
-- **Focus timer:** start a 25 or 50 minute session. When you close the panel, the countdown stays visible on a small black strip left of the notch (red dot for focus, green for a break). When the time is up you hear a sound and get a notification, then you can start a 5 minute break or go again.
+- **Focus timer:** pick a length with − and + (5 to 180 minutes, in 5-minute steps) and click Start. Notchpad remembers the length you used last. When you close the panel, the countdown stays visible on a small black strip left of the notch (red dot for focus, green for a break). When the time is up you hear a sound and get a notification, then you can start a 5 minute break or go again.
 - **Tailscale:** your Tailscale status, a Connect/Disconnect button and your devices. Click a device to copy its Tailscale IP. It uses the command line tool inside the Tailscale app, so it only works if Tailscale is installed. If the Tailscale app isn't running when you click Connect, Notchpad starts it first. It checks every 5 seconds, and only while the Tailscale widget is on screen.
 
 ## Tabs and widgets
@@ -83,9 +83,9 @@ The app isn't notarised by Apple, so the first time you open a downloaded copy, 
 
 Notchpad then asks for these permissions, each once:
 
-- **Calendar:** to show your next event. Nothing leaves your Mac.
-- **Reminders:** to show your reminders and tick them off.
-- **Automation for Music or Spotify:** to show the current song and to use the play, next and previous buttons. macOS asks once for each app.
+- **Calendar:** to show your next event, and to add, change or delete events when you ask it to. Nothing leaves your Mac.
+- **Reminders:** to show your reminders, tick them off, and add, change or delete them when you ask it to.
+- **Automation for Music or Spotify:** to show the current song and to use the play, next and previous buttons and the progress bar. macOS asks once for each app.
 - **Notifications:** for the "Focus done" message. The sound plays either way.
 
 If you say no to Calendar, the Next section says "Calendar off". If you say no to Reminders, the panel says "Reminders access is off" with a button that opens the right page in System Settings.
