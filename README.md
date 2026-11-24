@@ -21,7 +21,7 @@ The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (down
 
 ## Download
 
-1. Download **Notchpad-1.0.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.1.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
