@@ -72,18 +72,25 @@ struct RemindersSection: View {
             case .denied: accessOff()
             case .unknown: EmptyView()
             case .granted:
-                let items = ReminderLogic.homeList(inputs.reminders, now: inputs.now, calendar: .current)
+                let items = ReminderLogic.scrollList(inputs.reminders, now: inputs.now, calendar: .current)
                 if items.isEmpty {
-                    Text("No reminders due").font(.system(size: 12)).foregroundStyle(Color(white: 0.6))
+                    Text("No reminders").font(.system(size: 12)).foregroundStyle(Color(white: 0.6))
                 } else {
-                    ForEach(items) { r in
-                        ReminderRow(reminder: r,
-                                    label: ReminderLogic.dueLabel(r, now: inputs.now, calendar: .current),
-                                    isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
-                                    pending: inputs.pendingReminderIDs.contains(r.id),
-                                    onTick: { inputs.actions.tickReminder(r.id) },
-                                    onEdit: { inputs.actions.editReminder(r.id) })
+                    // Every reminder; the header stays put and the list scrolls under it.
+                    ScrollView(.vertical) {
+                        VStack(alignment: .leading, spacing: 7) {
+                            ForEach(items) { r in
+                                ReminderRow(reminder: r,
+                                            label: ReminderLogic.dueLabel(r, now: inputs.now, calendar: .current),
+                                            isOverdue: ReminderLogic.isOverdue(r, now: inputs.now, calendar: .current),
+                                            pending: inputs.pendingReminderIDs.contains(r.id),
+                                            onTick: { inputs.actions.tickReminder(r.id) },
+                                            onEdit: { inputs.actions.editReminder(r.id) })
+                            }
+                        }
+                        .padding(.bottom, 2)
                     }
+                    .scrollIndicators(.automatic)
                 }
             }
         }

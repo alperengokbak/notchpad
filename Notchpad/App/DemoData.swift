@@ -18,6 +18,8 @@ enum DemoData {
             item("Pay phone bill", day(3)),
             item("Plan weekend trip", nil),
             item("Milk", nil, list: "Shopping", order: 1),
+            item("Bread", nil, list: "Shopping", order: 1),
+            item("Coffee beans", nil, list: "Shopping", order: 1),
         ]
     }
 

@@ -49,3 +49,11 @@ private func r(_ title: String, due: Date?, time: Bool = false, list: Int = 0, l
     #expect(g.map(\.listTitle) == ["Personel", "Projects ideas", "Shopping"])
     #expect(g[0].items.map(\.title) == ["d1", "d2", "u1"])
 }
+
+@Test func scrollListHasEveryReminderDatedFirstThenUndated() {
+    let items = [r("later", due: at(25)), r("undated1", due: nil), r("overdueOld", due: at(20)),
+                 r("todayTimed", due: at(22, 16), time: true), r("overdueTimed", due: at(22, 9), time: true),
+                 r("tomorrow", due: at(23)), r("undated2", due: nil, list: 1)]
+    #expect(ReminderLogic.scrollList(items, now: now, calendar: london).map(\.title)
+            == ["overdueOld", "overdueTimed", "todayTimed", "tomorrow", "later", "undated1", "undated2"])
+}

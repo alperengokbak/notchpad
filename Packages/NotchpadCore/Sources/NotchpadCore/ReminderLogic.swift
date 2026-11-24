@@ -53,6 +53,16 @@ public enum ReminderLogic {
             .prefix(limit).map { $0 }
     }
 
+    /// Home column with scrolling: every reminder. Dated ones as in `homeList` (overdue first, then by due date),
+    /// then the undated ones by list order, keeping each list's own order.
+    public static func scrollList(_ items: [ReminderSummary], now: Date, calendar: Calendar) -> [ReminderSummary] {
+        let dated = homeList(items, now: now, calendar: calendar, limit: .max)
+        let undated = items.enumerated().filter { $0.element.due == nil }
+            .sorted { ($0.element.listOrder, $0.offset) < ($1.element.listOrder, $1.offset) }
+            .map(\.element)
+        return dated + undated
+    }
+
     /// Reminders tab: grouped by list in the app's order; dated by due date, then undated in input order.
     public static func grouped(_ items: [ReminderSummary]) -> [(listTitle: String, items: [ReminderSummary])] {
         let byList = Dictionary(grouping: items.enumerated(), by: { $0.element.listID })
