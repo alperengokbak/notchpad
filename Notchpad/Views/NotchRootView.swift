@@ -41,6 +41,21 @@ struct NotchRootView: View {
                 .animation(.easeOut(duration: 0.25), value: wings)
                 .shadow(color: .black.opacity(model.isOpen ? 0.45 : 0), radius: 15, y: 8)
 
+            if model.isOpen, let background = model.backgroundImage {
+                // Behind everything, darkened so white text stays readable, and click-through so it
+                // never blocks a button. Fills the panel and is cropped evenly, never stretched.
+                Image(nsImage: background)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: NotchGeometry.openSize.width, height: NotchGeometry.openSize.height)
+                    .clipped()
+                    .overlay(LinearGradient(colors: [Color.black.opacity(0.7), Color.black.opacity(0.55)],
+                                            startPoint: .top, endPoint: .bottom))
+                    .clipShape(NotchShape(bottomRadius: 26))
+                    .allowsHitTesting(false)
+                    .transition(.opacity.animation(.easeOut(duration: 0.15)))
+            }
+
             if model.isOpen {
                 TabStrip(model: model, panelWidth: NotchGeometry.openSize.width, notchSize: model.notchSize)
                     .transition(.opacity.animation(.easeOut(duration: 0.15)))

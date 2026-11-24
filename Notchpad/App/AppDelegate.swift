@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windowController = controller
         if CommandLine.arguments.contains("--edit") { model.beginEditing() }
         if let kind = DebugTools.argument(after: "--editor") { model.openEditorForDebug(kind) }
+        if let path = DebugTools.argument(after: "--set-background") { model.useBackground(from: URL(fileURLWithPath: path)) }
         if CommandLine.arguments.contains("--selftest-write") {
             Task { await model.runWriteSelfTest(); NSApp.terminate(nil) }
         }

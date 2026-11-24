@@ -54,7 +54,9 @@ Click Done when you're finished. You can have up to four tabs, and the same widg
 
 When there's no more room left of the notch, the next tabs go to the right of it. Your layout is saved in `~/Library/Application Support/Notchpad/layout.json`. If that file gets damaged, Notchpad starts with the default layout and keeps the damaged file next to it as `layout-broken-<date>.json`.
 
-Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Choose background image…", "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+
+**Background image:** pick any picture (JPEG, PNG, HEIC…) with "Choose background image…". It fills the open panel, cropped evenly to its wide shape (never stretched), and is darkened so the text stays readable. It never covers or blocks a button, and the closed notch stays black. Notchpad keeps its own smaller copy, so you can move or delete the original. "Remove background image" goes back to plain black.
 
 ## Requirements
 

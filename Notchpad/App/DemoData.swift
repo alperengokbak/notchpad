@@ -60,6 +60,23 @@ enum DemoData {
         }
     }
 
+    /// A made-up landscape for `--demo-background` screenshots (no real photo).
+    static func background() -> NSImage {
+        NSImage(size: NSSize(width: 1360, height: 400), flipped: false) { rect in
+            NSGradient(colors: [NSColor(red: 0.13, green: 0.36, blue: 0.62, alpha: 1),
+                                NSColor(red: 0.95, green: 0.55, blue: 0.35, alpha: 1)])?.draw(in: rect, angle: 90)
+            NSColor(red: 0.1, green: 0.25, blue: 0.2, alpha: 1).setFill()
+            let hills = NSBezierPath()
+            hills.move(to: .zero)
+            hills.curve(to: NSPoint(x: rect.width, y: 90), controlPoint1: NSPoint(x: 400, y: 260),
+                        controlPoint2: NSPoint(x: 900, y: -40))
+            hills.line(to: NSPoint(x: rect.width, y: 0))
+            hills.close()
+            hills.fill()
+            return true
+        }
+    }
+
     static let tailscale = TailscaleStatus(state: .connected, devices: [
         TailscaleDevice(id: "d1", name: "macbook", ipv4: "100.64.0.1", isOnline: true, isSelf: true),
         TailscaleDevice(id: "d2", name: "iphone", ipv4: "100.64.0.2", isOnline: true, isSelf: false),

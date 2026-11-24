@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import UniformTypeIdentifiers
 import EventKit
 import NotchpadCore
 
@@ -140,6 +141,13 @@ final class AppModel: ObservableObject {
     var onShowMenu: (() -> Void)?
     @Published private(set) var reminderLists: [NamedList] = []
     @Published private(set) var eventCalendars: [NamedList] = []
+    /// The picture behind the open panel (nil = plain black). Never shown on the closed notch.
+    @Published private(set) var backgroundImage: NSImage?
+    let backgroundStore = BackgroundStore(directory: AppModel.isDemo
+        ? FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo")
+        : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Notchpad"))
+
     /// Shown in the editor when EventKit refused a change.
     @Published var editorError: String?
     private var focusTicker: Timer?
@@ -225,6 +233,11 @@ final class AppModel: ObservableObject {
             self.updateFocusTicker()
         }
         showClosedMusic = preferences.showClosedMusic
+        if Self.isDemo {
+            if CommandLine.arguments.contains("--demo-background") { backgroundImage = DemoData.background() }
+        } else {
+            backgroundImage = backgroundStore.currentURL.flatMap(NSImage.init(contentsOf:))
+        }
         focusMinutes = Self.isDemo ? 25 : preferences.focusMinutes
         lastFocusMinutes = focusMinutes
         // A song may already be playing at launch; no notification arrives for it until it changes.
@@ -644,6 +657,45 @@ final class AppModel: ObservableObject {
             DebugTools.log("reminder completed")
             self.refreshReminders()
         }
+    }
+
+    // MARK: Background image
+
+    /// Opens the file picker; the picked image is shrunk and kept in Notchpad's folder.
+    func chooseBackground() {
+        let picker = NSOpenPanel()
+        picker.allowedContentTypes = [.image]
+        picker.allowsMultipleSelection = false
+        picker.canChooseDirectories = false
+        picker.message = "Choose a picture for the background of the open panel"
+        picker.prompt = "Use as background"
+        NSApp.activate(ignoringOtherApps: true)
+        picker.begin { [weak self] response in
+            MainActor.assumeIsolated {
+                guard let self, response == .OK, let url = picker.url else { return }
+                self.useBackground(from: url)
+            }
+        }
+    }
+
+    func useBackground(from url: URL) {
+        do {
+            let saved = try backgroundStore.importImage(from: url)
+            backgroundImage = NSImage(contentsOf: saved)
+            DebugTools.log("background: set")
+        } catch {
+            DebugTools.log("background: refused (\(error))")
+            let alert = NSAlert()
+            alert.messageText = "Notchpad can't use this file as a background"
+            alert.informativeText = "Pick a picture file, for example a JPEG, PNG or HEIC."
+            alert.runModal()
+        }
+    }
+
+    func removeBackground() {
+        backgroundStore.remove()
+        backgroundImage = nil
+        DebugTools.log("background: removed")
     }
 
     // MARK: Editor (add, change, delete reminders and events)

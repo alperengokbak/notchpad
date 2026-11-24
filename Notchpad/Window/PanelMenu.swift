@@ -6,7 +6,9 @@ import NotchpadCore
 enum PanelMenu {
     static func make(shelf: ShelfStore?, editing: Bool, onEditWidgets: @escaping () -> Void,
                      micShown: Bool, onToggleMic: @escaping () -> Void,
-                     closedMusicShown: Bool, onToggleClosedMusic: @escaping () -> Void) -> NSMenu {
+                     closedMusicShown: Bool, onToggleClosedMusic: @escaping () -> Void,
+                     hasBackground: Bool = false, onChooseBackground: @escaping () -> Void = {},
+                     onRemoveBackground: @escaping () -> Void = {}) -> NSMenu {
         let menu = NSMenu()
         let edit = NSMenuItem(title: editing ? "Done editing" : "Edit widgets…",
                               action: #selector(MenuTarget.editWidgets), keyEquivalent: "")
@@ -36,6 +38,19 @@ enum PanelMenu {
         music.state = closedMusicShown ? .on : .off
         MenuTarget.shared.onToggleClosedMusic = onToggleClosedMusic
         menu.addItem(music)
+        menu.addItem(.separator())
+        let chooseBG = NSMenuItem(title: hasBackground ? "Change background image…" : "Choose background image…",
+                                  action: #selector(MenuTarget.chooseBackground), keyEquivalent: "")
+        chooseBG.target = MenuTarget.shared
+        MenuTarget.shared.onChooseBackground = onChooseBackground
+        menu.addItem(chooseBG)
+        if hasBackground {
+            let removeBG = NSMenuItem(title: "Remove background image", action: #selector(MenuTarget.removeBackground), keyEquivalent: "")
+            removeBG.target = MenuTarget.shared
+            MenuTarget.shared.onRemoveBackground = onRemoveBackground
+            menu.addItem(removeBG)
+        }
+        menu.addItem(.separator())
         let login = NSMenuItem(title: "Launch at login", action: #selector(MenuTarget.toggleLogin), keyEquivalent: "")
         login.target = MenuTarget.shared
         login.state = LoginItem.isEnabled ? .on : .off
@@ -55,6 +70,16 @@ final class MenuTarget: NSObject {
     var onEditWidgets: (() -> Void)?
     var onToggleMic: (() -> Void)?
     var onToggleClosedMusic: (() -> Void)?
+    var onChooseBackground: (() -> Void)?
+    var onRemoveBackground: (() -> Void)?
+
+    @objc func chooseBackground() {
+        onChooseBackground?()
+    }
+
+    @objc func removeBackground() {
+        onRemoveBackground?()
+    }
 
     @objc func toggleMic() {
         onToggleMic?()

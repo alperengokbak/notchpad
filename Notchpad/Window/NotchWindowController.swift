@@ -81,6 +81,9 @@ final class NotchWindowController {
             host.onToggleMic = { [weak model] in model?.showMicIndicator.toggle() }
             host.closedMusicShown = { [weak model] in model?.showClosedMusic ?? true }
             host.onToggleClosedMusic = { [weak model] in model?.showClosedMusic.toggle() }
+            host.hasBackground = { [weak model] in model?.backgroundImage != nil }
+            host.onChooseBackground = { [weak model] in model?.chooseBackground() }
+            host.onRemoveBackground = { [weak model] in model?.removeBackground() }
             host.onEditWidgets = { [weak model] in
                 guard let model else { return }
                 if model.isEditing { model.endEditing() } else { model.beginEditing() }
@@ -246,6 +249,9 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     var onToggleMic: () -> Void = {}
     var closedMusicShown: () -> Bool = { true }
     var onToggleClosedMusic: () -> Void = {}
+    var hasBackground: () -> Bool = { false }
+    var onChooseBackground: () -> Void = {}
+    var onRemoveBackground: () -> Void = {}
 
     override func rightMouseDown(with event: NSEvent) {
         NSMenu.popUpContextMenu(makeMenu(), with: event, for: self)
@@ -262,7 +268,9 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     private func makeMenu() -> NSMenu {
         PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets,
                        micShown: micShown(), onToggleMic: onToggleMic,
-                       closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic)
+                       closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic,
+                       hasBackground: hasBackground(), onChooseBackground: onChooseBackground,
+                       onRemoveBackground: onRemoveBackground)
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
