@@ -26,6 +26,14 @@ struct WidgetActions {
     var beginFocusTyping: () -> Void = {}
     var endFocusTyping: (String?) -> Void = { _ in }
     var startFocusFromWidget: (String?) -> Void = { _ in }
+    var launch: (LauncherItem) -> Void = { _ in }
+    var removeLauncherItem: (UUID) -> Void = { _ in }
+    var addLauncherApp: () -> Void = {}
+    var addLauncherFolder: () -> Void = {}
+    var addLauncherShortcut: (String) -> Void = { _ in }
+    var refreshShortcutNames: () -> Void = {}
+    var dropOnLauncherFolder: (LauncherItem, [URL]) -> Void = { _, _ in }
+    var showLauncherAddMenu: () -> Void = {}
 
     static let none = WidgetActions()
 }
@@ -49,6 +57,10 @@ struct WidgetInputs {
     var focusMinutes: Int = 25
     /// The focus length text box is open.
     var editingFocusMinutes = false
+    /// Shortcuts widget: its icons, his shortcut names (for the + menu), and the folder that just took a drop.
+    var launcherItems: [LauncherItem] = []
+    var shortcutNames: [String] = []
+    var copiedLauncherID: UUID?
     var tailscale: TailscaleStatus?
     var tailscaleBusy: Bool
     var tailscaleMessage: String?
@@ -82,6 +94,14 @@ extension AppModel {
         actions.beginFocusTyping = { [weak self] in self?.beginFocusMinutesTyping() }
         actions.endFocusTyping = { [weak self] in self?.endFocusMinutesTyping($0) }
         actions.startFocusFromWidget = { [weak self] in self?.startFocusFromWidget(typed: $0) }
+        actions.launch = { [weak self] in self?.launch($0) }
+        actions.removeLauncherItem = { [weak self] in self?.launcher.remove($0) }
+        actions.addLauncherApp = { [weak self] in self?.addLauncherApp() }
+        actions.addLauncherFolder = { [weak self] in self?.addLauncherFolder() }
+        actions.addLauncherShortcut = { [weak self] in self?.addLauncherShortcut($0) }
+        actions.refreshShortcutNames = { [weak self] in self?.refreshShortcutNames() }
+        actions.dropOnLauncherFolder = { [weak self] in self?.dropOnLauncherFolder($0, $1) }
+        actions.showLauncherAddMenu = { [weak self] in self?.showLauncherAddMenu() }
         var inputs = WidgetInputs(music: music, musicAppName: musicSource.appName, artwork: artwork, now: clock,
                             reminders: reminders, remindersAccess: remindersAccess,
                             pendingReminderIDs: pendingReminderIDs,
@@ -91,6 +111,9 @@ extension AppModel {
                             tailscaleMessage: tailscaleMessage, copiedDeviceID: copiedDeviceID,
                             shelf: shelf, shelfDropTargeted: dropTargeted, actions: actions)
         inputs.editingFocusMinutes = editingFocusMinutes
+        inputs.launcherItems = launcher.items
+        inputs.shortcutNames = shortcutNames
+        inputs.copiedLauncherID = copiedLauncherID
         return inputs
     }
 }

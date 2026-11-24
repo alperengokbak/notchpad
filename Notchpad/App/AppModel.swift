@@ -148,6 +148,17 @@ final class AppModel: ObservableObject {
         : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Notchpad"))
 
+    /// The Shortcuts widget's icons (apps, shortcuts, folders). One list for every Shortcuts widget.
+    let launcher = LauncherStore(storageURL: AppModel.isDemo
+        ? FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo/launcher.json")
+        : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Notchpad/launcher.json"))
+    /// Names from the Shortcuts app, for the + menu. Read when a Shortcuts widget appears.
+    @Published private(set) var shortcutNames: [String] = []
+    /// The folder icon that just took dropped files (shows a tick for a moment).
+    @Published private(set) var copiedLauncherID: UUID?
+    private var launcherWatch: AnyCancellable?
+
     /// Shown in the editor when EventKit refused a change.
     @Published var editorError: String?
     private var focusTicker: Timer?
@@ -233,6 +244,8 @@ final class AppModel: ObservableObject {
             self.updateFocusTicker()
         }
         showClosedMusic = preferences.showClosedMusic
+        // The panel redraws when the Shortcuts widget's list changes.
+        launcherWatch = launcher.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         if Self.isDemo {
             if CommandLine.arguments.contains("--demo-background") { backgroundImage = DemoData.background() }
         } else {
@@ -662,6 +675,126 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Shortcuts widget
+
+    /// Click on an icon: open the app, run the shortcut, or open the folder in Finder.
+    func launch(_ item: LauncherItem) {
+        DebugTools.log("launch \(item.kind.rawValue): \(item.title)")
+        guard !Self.isDemo else { return }
+        switch item.kind {
+        case .app:
+            NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: item.target), configuration: .init())
+        case .folder:
+            NSWorkspace.shared.open(URL(fileURLWithPath: item.target, isDirectory: true))
+        case .shortcut:
+            // Started and left to run: a long or waiting shortcut never holds up the panel.
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: ShortcutsCLI.path)
+            process.arguments = ShortcutsCLI.runArguments(item.target)
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            try? process.run()
+        }
+    }
+
+    /// Reads his shortcuts from the Shortcuts app (off the main thread) for the + menu.
+    func refreshShortcutNames() {
+        guard !Self.isDemo else {
+            shortcutNames = ["Morning routine", "Send ETA", "Resize images"]
+            DebugTools.log("shortcut names: \(shortcutNames.count)")
+            return
+        }
+        DispatchQueue.global().async { [weak self] in
+            let names = ProcessRunner().run(ShortcutsCLI.path, ["list"]).map { ShortcutsCLI.parseList($0.output) } ?? []
+            DispatchQueue.main.async { self?.shortcutNames = names }
+        }
+    }
+
+    /// The + on the Shortcuts widget: App…, Shortcut ▸ (his shortcuts), Folder…, opened at the pointer.
+    func showLauncherAddMenu() {
+        let menu = NSMenu()
+        menu.addItem(ClosureMenuItem("App…") { [weak self] in self?.addLauncherApp() })
+        let shortcuts = NSMenuItem(title: "Shortcut", action: nil, keyEquivalent: "")
+        let sub = NSMenu()
+        if shortcutNames.isEmpty {
+            let none = NSMenuItem(title: "No shortcuts found in the Shortcuts app", action: nil, keyEquivalent: "")
+            none.isEnabled = false
+            sub.addItem(none)
+        }
+        for name in shortcutNames {
+            sub.addItem(ClosureMenuItem(name) { [weak self] in self?.addLauncherShortcut(name) })
+        }
+        shortcuts.submenu = sub
+        menu.addItem(shortcuts)
+        menu.addItem(ClosureMenuItem("Folder…") { [weak self] in self?.addLauncherFolder() })
+        DebugTools.log("launcher menu")
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
+    func addLauncherShortcut(_ name: String) {
+        let added = launcher.add(.shortcut, target: name, title: name)
+        DebugTools.log("launcher add shortcut: \(name) added=\(added)")
+    }
+
+    func addLauncherApp() {
+        let picker = NSOpenPanel()
+        picker.allowedContentTypes = [.application]
+        picker.directoryURL = URL(fileURLWithPath: "/Applications")
+        picker.allowsMultipleSelection = true
+        picker.message = "Choose apps for the Shortcuts widget"
+        picker.prompt = "Add"
+        NSApp.activate(ignoringOtherApps: true)
+        picker.begin { [weak self] response in
+            MainActor.assumeIsolated {
+                guard let self, response == .OK else { return }
+                for url in picker.urls {
+                    let name = FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
+                    self.launcher.add(.app, target: url.path, title: name)
+                }
+            }
+        }
+    }
+
+    /// Starts in ~/Library/CloudStorage when it exists: Google Drive for desktop puts "My Drive" there.
+    func addLauncherFolder() {
+        let picker = NSOpenPanel()
+        picker.canChooseDirectories = true
+        picker.canChooseFiles = false
+        picker.allowsMultipleSelection = true
+        let cloud = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/CloudStorage")
+        picker.directoryURL = FileManager.default.fileExists(atPath: cloud.path)
+            ? cloud : FileManager.default.homeDirectoryForCurrentUser
+        picker.message = "Choose folders for the Shortcuts widget (Google Drive is under CloudStorage)"
+        picker.prompt = "Add"
+        NSApp.activate(ignoringOtherApps: true)
+        picker.begin { [weak self] response in
+            MainActor.assumeIsolated {
+                guard let self, response == .OK else { return }
+                for url in picker.urls {
+                    self.launcher.add(.folder, target: url.path, title: FileManager.default.displayName(atPath: url.path))
+                }
+            }
+        }
+    }
+
+    /// Files dropped on a folder icon are copied in (originals stay); a tick shows when done.
+    func dropOnLauncherFolder(_ item: LauncherItem, _ urls: [URL]) {
+        guard item.kind == .folder, !urls.isEmpty else { return }
+        let folder = URL(fileURLWithPath: item.target, isDirectory: true)
+        DispatchQueue.global().async { [weak self] in
+            let copied = FileDrop.copy(urls, into: folder)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                DebugTools.log("copied \(copied.count) into \(item.title)")
+                guard !copied.isEmpty else { return }
+                self.copiedLauncherID = item.id
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    if self.copiedLauncherID == item.id { self.copiedLauncherID = nil }
+                }
+            }
+        }
+    }
+
     // MARK: Background image
 
     /// Opens the file picker; the picked image is shrunk and kept in Notchpad's folder.
@@ -864,6 +997,7 @@ extension AppModel {
             artwork = DemoData.cover()
         }
         focus = CommandLine.arguments.contains("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
+        launcher.setForDemo(DemoData.launcherItems())
         // Launch video frames: `--demo-song-position <seconds>` puts the made-up song there.
         if let p = DebugTools.argument(after: "--demo-song-position").flatMap(Double.init), case .playing(var song) = music {
             song.position = p

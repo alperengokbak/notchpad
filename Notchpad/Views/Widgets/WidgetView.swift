@@ -46,6 +46,8 @@ struct WidgetView: View {
                           copiedDeviceID: inputs.copiedDeviceID, onConnect: a.connectTailscale, onCopy: a.copyIP)
         case (.tailscale, _):
             TailscaleCompact(inputs: inputs)
+        case (.launcher, _):
+            LauncherView(inputs: inputs, size: size)
         }
     }
 }
