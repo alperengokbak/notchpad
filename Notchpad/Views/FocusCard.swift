@@ -16,20 +16,24 @@ struct FocusCard: View {
             case .idle:
                 label("FOCUS", dot: nil)
                 HStack(spacing: 4) {
-                    icon("minus") { actions.stepFocus(-1) }
+                    icon("minus") { step(-1) }
                         .disabled(inputs.focusMinutes <= FocusLength.range.lowerBound)
-                    if inputs.editingFocusMinutes {
-                        lengthBox
-                    } else {
-                        Button { actions.beginFocusTyping() } label: {
-                            Text("\(inputs.focusMinutes) min")
-                                .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                                .frame(minWidth: 50).contentShape(Rectangle())
+                    // Same width typed or not, so − and + stay put when typing ends.
+                    Group {
+                        if inputs.editingFocusMinutes {
+                            lengthBox
+                        } else {
+                            Button { actions.beginFocusTyping() } label: {
+                                Text("\(inputs.focusMinutes) min")
+                                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                                    .frame(maxWidth: .infinity).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help("Click to type a length, like 40 or 1:30")
                         }
-                        .buttonStyle(.plain)
-                        .help("Click to type a length, like 40 or 1:30")
                     }
-                    icon("plus") { actions.stepFocus(1) }
+                    .frame(width: 72)
+                    icon("plus") { step(1) }
                         .disabled(inputs.focusMinutes >= FocusLength.range.upperBound)
                     Spacer(minLength: 4)
                     pill("Start") { actions.startFocusFromWidget(inputs.editingFocusMinutes ? typed : nil) }
@@ -56,6 +60,12 @@ struct FocusCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// − / +: while typing, start from the typed number (so 35 then + gives 40).
+    private func step(_ direction: Int) {
+        if inputs.editingFocusMinutes { actions.endFocusTyping(typed) }
+        actions.stepFocus(direction)
     }
 
     /// The length as a text box: Return keeps it, Esc goes back, clicking away keeps it.

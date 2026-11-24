@@ -88,6 +88,19 @@ final class NotchWindowController {
             host.frame = NSRect(origin: .zero, size: openRect.size)
             p.contentView = host
             panel = p
+            // A click anywhere in the panel except the focus length box ends typing there and keeps
+            // what was typed (like Return), the way text boxes work everywhere else on the Mac.
+            // Done on mouse up, so a button clicked meanwhile (−, +, Start) still gets its whole click.
+            clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+                MainActor.assumeIsolated {
+                    guard let self, let panel = self.panel, event.window === panel,
+                          self.model.editingFocusMinutes, !Self.isTextInput(at: event, in: panel) else { return }
+                    DebugTools.log("focus typing: clicked elsewhere")
+                    // After the click has been handled, so a button's action runs first.
+                    DispatchQueue.main.async { panel.makeFirstResponder(nil) }
+                }
+                return event
+            }
             // He clicked another app while the editor was open: drop the editor so the panel can close.
             NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: p,
                                                    queue: .main) { [weak self] _ in
@@ -123,6 +136,17 @@ final class NotchWindowController {
 
     /// Whether the panel currently holds keyboard focus (edit mode or the editor).
     private var hasKeyFocus = false
+    private var clickMonitor: Any?
+
+    /// True when the click lands on the text box being typed in. The box is found through the window's
+    /// field editor (the text view macOS puts inside a box while you type), not by hit-testing,
+    /// because SwiftUI hosts its text fields in views that hit-testing doesn't report.
+    private static func isTextInput(at event: NSEvent, in panel: NSPanel) -> Bool {
+        guard let editor = panel.firstResponder as? NSTextView, editor.isFieldEditor else { return false }
+        let box = (editor.delegate as? NSView) ?? editor
+        let frame = box.convert(box.bounds, to: nil).insetBy(dx: -4, dy: -4)
+        return frame.contains(event.locationInWindow)
+    }
 
     /// Takes keyboard focus while edit mode or the editor needs it; hands it back to his app after.
     private func updateKeyFocus() {
