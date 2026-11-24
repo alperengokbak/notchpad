@@ -4,7 +4,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// The Shortcuts widget: apps, shortcuts from the Shortcuts app, and folders, one click away.
-/// "+" adds one; hovering an icon shows its remove button; files dropped on a folder are copied in.
+/// The "Add" tile after the last icon adds one (a native menu: App…, Shortcut ▸, Folder…; SwiftUI's own
+/// Menu doesn't open reliably in this panel, which never takes focus). Hovering an icon shows its remove
+/// button; files dropped on a folder are copied in.
 struct LauncherView: View {
     let inputs: WidgetInputs
     let size: WidgetSize
@@ -15,39 +17,28 @@ struct LauncherView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 4 : 7) {
-            HStack {
-                Text("SHORTCUTS").font(.system(size: 10, weight: .medium)).tracking(0.6)
-                    .foregroundStyle(Color(white: 0.55))
-                Spacer()
-                addMenu
-            }
-            if items.isEmpty {
-                Text("Click + to add apps, shortcuts or folders")
-                    .font(.system(size: 11)).foregroundStyle(Color(white: 0.55))
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                ScrollView(.vertical) {
-                    LazyVGrid(columns: Array(repeating: GridItem(.fixed(44), spacing: 6), count: columns),
-                              alignment: .leading, spacing: compact ? 4 : 8) {
-                        ForEach(items) { item in
-                            LauncherTile(item: item, showTitle: !compact,
-                                         copied: inputs.copiedLauncherID == item.id,
-                                         onOpen: { inputs.actions.launch(item) },
-                                         onRemove: { inputs.actions.removeLauncherItem(item.id) },
-                                         onDrop: { inputs.actions.dropOnLauncherFolder(item, $0) })
-                        }
+            Text("SHORTCUTS").font(.system(size: 10, weight: .medium)).tracking(0.6)
+                .foregroundStyle(Color(white: 0.55))
+            ScrollView(.vertical) {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(44), spacing: 6), count: columns),
+                          alignment: .leading, spacing: compact ? 4 : 8) {
+                    ForEach(items) { item in
+                        LauncherTile(item: item, showTitle: !compact,
+                                     copied: inputs.copiedLauncherID == item.id,
+                                     onOpen: { inputs.actions.launch(item) },
+                                     onRemove: { inputs.actions.removeLauncherItem(item.id) },
+                                     onDrop: { inputs.actions.dropOnLauncherFolder(item, $0) })
                     }
+                    // Always the last spot: where the next icon will go.
+                    LauncherAddTile(showTitle: !compact) { inputs.actions.showLauncherAddMenu() }
                 }
-                .scrollIndicators(.automatic)
+            }
+            .scrollIndicators(.automatic)
+            if items.isEmpty && !compact {
+                Text("Add apps, shortcuts or folders").font(.system(size: 11)).foregroundStyle(Color(white: 0.55))
             }
         }
         .onAppear { inputs.actions.refreshShortcutNames() }
-    }
-
-    /// A native menu (App…, Shortcut ▸, Folder…) under the pointer. SwiftUI's own Menu doesn't open
-    /// reliably in this panel, which never takes focus.
-    private var addMenu: some View {
-        AddButton(help: "Add an app, a shortcut or a folder") { inputs.actions.showLauncherAddMenu() }
     }
 }
 
@@ -161,5 +152,57 @@ struct LauncherIcon: View {
         let image = NSWorkspace.shared.icon(forFile: URL(fileURLWithPath: path).resolvingSymlinksInPath().path)
         cache[path] = image
         return image
+    }
+}
+
+/// The "Add" tile: same size as an icon, always right after the last one.
+struct LauncherAddTile: View {
+    let showTitle: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                AddGridGlyph()
+                    .frame(width: showTitle ? 34 : 30, height: showTitle ? 34 : 30)
+                if showTitle {
+                    Text("Add").font(.system(size: 9, weight: .medium)).foregroundStyle(Color(white: 0.6))
+                }
+            }
+            .frame(width: 44)
+            .padding(.vertical, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Add an app, a shortcut or a folder")
+    }
+}
+
+/// Three outlined squares with a + in the fourth corner, on a dark rounded tile.
+struct AddGridGlyph: View {
+    var body: some View {
+        GeometryReader { geo in
+            let side = geo.size.width
+            let cell = side * 0.27, gap = side * 0.09
+            let start = (side - 2 * cell - gap) / 2
+            let line = Color(white: 0.72)
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: side * 0.24).fill(Color(white: 0.16))
+                cellBox(cell, line).offset(x: start, y: start)
+                cellBox(cell, line).offset(x: start, y: start + cell + gap)
+                cellBox(cell, line).offset(x: start + cell + gap, y: start + cell + gap)
+                Image(systemName: "plus")
+                    .font(.system(size: cell * 0.95, weight: .bold))
+                    .foregroundStyle(line)
+                    .frame(width: cell, height: cell)
+                    .offset(x: start + cell + gap, y: start)
+            }
+        }
+    }
+
+    private func cellBox(_ size: CGFloat, _ color: Color) -> some View {
+        RoundedRectangle(cornerRadius: size * 0.28)
+            .stroke(color, lineWidth: max(1.2, size * 0.13))
+            .frame(width: size, height: size)
     }
 }
