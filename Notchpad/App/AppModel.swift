@@ -136,6 +136,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var editorToken = 0
     /// Set by the window controller: holds the panel open and gives it keyboard focus.
     var onTypingChanged: ((Bool) -> Void)?
+    /// Set by the window controller: the settings button opens the right-click menu under it.
+    var onShowMenu: (() -> Void)?
     @Published private(set) var reminderLists: [NamedList] = []
     @Published private(set) var eventCalendars: [NamedList] = []
     /// Shown in the editor when EventKit refused a change.

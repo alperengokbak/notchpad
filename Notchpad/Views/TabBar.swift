@@ -14,6 +14,7 @@ struct TabStrip: View {
     private static let edge: CGFloat = 22
     private static let spacing: CGFloat = 6
     private static let notchGap: CGFloat = 10
+    private static let gearSize: CGFloat = 22
 
     @State private var renamingID: UUID?
     @State private var draft = ""
@@ -51,6 +52,11 @@ struct TabStrip: View {
                 }
                 .frame(height: notchSize.height)
                 .frame(width: panelWidth - Self.edge, alignment: .trailing)
+            } else {
+                // Settings: the same menu as a right-click, for people who don't think of right-clicking.
+                circleButton("gearshape.fill") { model.onShowMenu?() }
+                    .position(x: panelWidth - Self.edge - Self.gearSize / 2, y: notchSize.height / 2)
+                    .help("Settings")
             }
         }
         .frame(width: panelWidth, height: notchSize.height, alignment: .topLeading)
@@ -77,7 +83,7 @@ struct TabStrip: View {
         let leftStart = Self.edge
         let leftEnd = panelWidth / 2 - notchSize.width / 2 - Self.notchGap
         let rightStart = panelWidth / 2 + notchSize.width / 2 + Self.notchGap
-        let rightEnd = panelWidth - Self.edge - (editing ? controlsWidth + Self.spacing : 0)
+        let rightEnd = panelWidth - Self.edge - (editing ? controlsWidth : Self.gearSize) - Self.spacing
         let plusWidth: CGFloat = editing ? 22 : 0
         let widths = tabs.map { tab -> CGFloat in
             // While renaming, just enough room for the name being typed (it grows as he types).

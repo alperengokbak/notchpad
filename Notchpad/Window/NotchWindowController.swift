@@ -86,6 +86,11 @@ final class NotchWindowController {
                 if model.isEditing { model.endEditing() } else { model.beginEditing() }
             }
             host.frame = NSRect(origin: .zero, size: openRect.size)
+            model.onShowMenu = { [weak host, weak model] in
+                guard let host, let model else { return }
+                DebugTools.log("menu: settings button")
+                host.showMenu(belowRightEdge: host.bounds.width - 22, top: model.notchSize.height + 2)
+            }
             p.contentView = host
             panel = p
             // A click anywhere in the panel except the focus length box ends typing there and keeps
@@ -243,10 +248,21 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     var onToggleClosedMusic: () -> Void = {}
 
     override func rightMouseDown(with event: NSEvent) {
-        NSMenu.popUpContextMenu(PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets,
-                                               micShown: micShown(), onToggleMic: onToggleMic,
-                                               closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic),
-                                with: event, for: self)
+        NSMenu.popUpContextMenu(makeMenu(), with: event, for: self)
+    }
+
+    /// The same menu, opened by the settings button: its top-right corner under the button.
+    func showMenu(belowRightEdge x: CGFloat, top: CGFloat) {
+        let menu = makeMenu()
+        let width = menu.size.width
+        let y = isFlipped ? top : bounds.height - top
+        menu.popUp(positioning: nil, at: NSPoint(x: x - width, y: y), in: self)
+    }
+
+    private func makeMenu() -> NSMenu {
+        PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets,
+                       micShown: micShown(), onToggleMic: onToggleMic,
+                       closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic)
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }

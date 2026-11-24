@@ -54,7 +54,7 @@ Click Done when you're finished. You can have up to four tabs, and the same widg
 
 When there's no more room left of the notch, the next tabs go to the right of it. Your layout is saved in `~/Library/Application Support/Notchpad/layout.json`. If that file gets damaged, Notchpad starts with the default layout and keeps the damaged file next to it as `layout-broken-<date>.json`.
 
-Right-click the open panel for "Edit widgets…", "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
 
 ## Requirements
 
