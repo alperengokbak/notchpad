@@ -8,6 +8,15 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
+## What's new in 1.3
+
+- **Mirror widget.** Check how you look before a call. Click the widget and it shows your camera like a mirror; click again, close the panel or switch tabs and the camera turns off. It never turns on by itself.
+- **Swipe to change songs.** With the pointer over the notch, open or closed, swipe two fingers left for the next song or right for the previous one.
+- **Charging on the closed notch.** Plug in the charger and a green bolt with your battery level shows beside the notch for a few seconds.
+- **Shelf options.** Show the newest files first, or stop the panel from opening when you drag a file towards the notch.
+
+Each of the last three has an on/off switch in the settings menu (the gear, or right-click).
+
 ## What's new in 1.2
 
 - **Shortcuts widget.** One-click icons for the apps, shortcuts and folders you use most. Add it from the widget gallery, then click the Add tile after the last icon to pick an app, one of your shortcuts from the Shortcuts app, or a folder such as Google Drive's "My Drive". Drop files on a folder icon to copy them into it.
@@ -25,7 +34,7 @@ The video shows version 1.1: adding a reminder, jumping around a song with the d
 
 ## Download
 
-1. Download **Notchpad-1.2.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.3.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
