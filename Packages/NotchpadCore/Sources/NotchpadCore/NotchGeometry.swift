@@ -41,9 +41,10 @@ public enum NotchGeometry {
 
     /// The black extensions beside the closed notch. Left: focus countdown and microphone (70 pt each),
     /// then the song's cover (36 pt). Right: the music bars (36 pt).
-    public static func wings(focus: Bool, mic: Bool, music: Bool) -> WingWidths {
+    /// `charging`: the "plugged in" badge (70 pt) shown for a few seconds right of the notch.
+    public static func wings(focus: Bool, mic: Bool, music: Bool, charging: Bool = false) -> WingWidths {
         let left = CGFloat((focus ? 1 : 0) + (mic ? 1 : 0)) * 70 + (music ? 36 : 0)
-        return WingWidths(left: left, right: music ? 36 : 0)
+        return WingWidths(left: left, right: (music ? 36 : 0) + (charging ? 70 : 0))
     }
 
     /// Hot zone that also covers the wings when they're showing.

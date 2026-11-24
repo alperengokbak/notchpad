@@ -53,6 +53,10 @@ public struct Preferences {
     private static let sourceKey = "lastMusicSource"
     private static let closedMusicKey = "showClosedMusic"
     private static let focusMinutesKey = "focusMinutes"
+    private static let swipeKey = "swipeToChangeSongs"
+    private static let shelfNewestKey = "shelfNewestFirst"
+    private static let fileDragKey = "openOnFileDrag"
+    private static let chargingKey = "showChargingAnimation"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -74,6 +78,30 @@ public struct Preferences {
     public var focusMinutes: Int {
         get { FocusLength.clamp(defaults.object(forKey: Self.focusMinutesKey) as? Int ?? 25) }
         nonmutating set { defaults.set(FocusLength.clamp(newValue), forKey: Self.focusMinutesKey) }
+    }
+
+    /// Two-finger swipe over the notch changes the song. On unless turned off.
+    public var swipeToChangeSongs: Bool {
+        get { defaults.object(forKey: Self.swipeKey) as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: Self.swipeKey) }
+    }
+
+    /// Shelf shows the most recently added files first. Off unless turned on.
+    public var shelfNewestFirst: Bool {
+        get { defaults.object(forKey: Self.shelfNewestKey) as? Bool ?? false }
+        nonmutating set { defaults.set(newValue, forKey: Self.shelfNewestKey) }
+    }
+
+    /// Dragging a file towards the notch opens the panel. On unless turned off.
+    public var openOnFileDrag: Bool {
+        get { defaults.object(forKey: Self.fileDragKey) as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: Self.fileDragKey) }
+    }
+
+    /// A short "plugged in" badge beside the closed notch. On unless turned off.
+    public var showChargingAnimation: Bool {
+        get { defaults.object(forKey: Self.chargingKey) as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: Self.chargingKey) }
     }
 
     /// The player the Music widget showed last, so its "Open" button opens the right app.
