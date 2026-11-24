@@ -202,3 +202,23 @@ private func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 0, _ min: Int = 0) ->
     #expect(london.isDate(d.due, inSameDayAs: date(2026, 11, 24)))
     #expect(!d.hasTime)
 }
+
+@Test func focusLengthParsesTypedText() {
+    #expect(FocusLength.parse("45") == 45)
+    #expect(FocusLength.parse(" 45 min ") == 45)
+    #expect(FocusLength.parse("45m") == 45)
+    #expect(FocusLength.parse("1:30") == 90)
+    #expect(FocusLength.parse("1h") == 60)
+    #expect(FocusLength.parse("1h30") == 90)
+    #expect(FocusLength.parse("2h 30m") == 150)
+    #expect(FocusLength.parse("3") == 5)      // below the range: lowest length
+    #expect(FocusLength.parse("500") == 180)  // above the range: longest length
+}
+
+@Test func focusLengthRejectsNonsense() {
+    #expect(FocusLength.parse("") == nil)
+    #expect(FocusLength.parse("abc") == nil)
+    #expect(FocusLength.parse("0") == nil)
+    #expect(FocusLength.parse("1:75") == nil)
+    #expect(FocusLength.parse("-20") == nil)
+}

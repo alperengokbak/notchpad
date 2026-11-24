@@ -6,6 +6,9 @@ struct FocusCard: View {
     let inputs: WidgetInputs
     private var focus: FocusTimer { inputs.focus }
     private var actions: WidgetActions { inputs.actions }
+    /// What's typed in the length box (only while it's open).
+    @State private var typed = ""
+    @FocusState private var boxFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -15,13 +18,21 @@ struct FocusCard: View {
                 HStack(spacing: 4) {
                     icon("minus") { actions.stepFocus(-1) }
                         .disabled(inputs.focusMinutes <= FocusLength.range.lowerBound)
-                    Text("\(inputs.focusMinutes) min")
-                        .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                        .frame(minWidth: 50)
+                    if inputs.editingFocusMinutes {
+                        lengthBox
+                    } else {
+                        Button { actions.beginFocusTyping() } label: {
+                            Text("\(inputs.focusMinutes) min")
+                                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                                .frame(minWidth: 50).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Click to type a length, like 40 or 1:30")
+                    }
                     icon("plus") { actions.stepFocus(1) }
                         .disabled(inputs.focusMinutes >= FocusLength.range.upperBound)
                     Spacer(minLength: 4)
-                    pill("Start") { actions.startFocus(.focus, inputs.focusMinutes) }
+                    pill("Start") { actions.startFocusFromWidget(inputs.editingFocusMinutes ? typed : nil) }
                 }
             case .running(let kind, _), .paused(let kind, _):
                 label(kind == .focus ? "FOCUS" : "BREAK", dot: kind == .focus ? .red : .green)
@@ -45,6 +56,28 @@ struct FocusCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The length as a text box: Return keeps it, Esc goes back, clicking away keeps it.
+    private var lengthBox: some View {
+        HStack(spacing: 3) {
+            TextField("", text: $typed)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .multilineTextAlignment(.center)
+                .frame(width: 38)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 5).fill(Color(white: 0.18)))
+                .focused($boxFocused)
+                .onSubmit { actions.endFocusTyping(typed) }
+                .onExitCommand { actions.endFocusTyping(nil) }
+                .onChange(of: boxFocused) { _, focused in if !focused { actions.endFocusTyping(typed) } }
+            Text("min").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color(white: 0.6))
+        }
+        .onAppear {
+            typed = "\(inputs.focusMinutes)"
+            DispatchQueue.main.async { boxFocused = true }
+        }
     }
 
     private func label(_ text: String, dot: Color?) -> some View {

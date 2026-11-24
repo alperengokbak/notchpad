@@ -112,12 +112,25 @@ final class AppModel: ObservableObject {
     private(set) var lastFocusMinutes = 25
     /// Focus length picked with − / + (remembered between launches).
     @Published var focusMinutes = 25 {
-        didSet { if focusMinutes != oldValue { preferences.focusMinutes = focusMinutes } }
+        // Demo runs (screenshots, tests) never change his saved length.
+        didSet { if focusMinutes != oldValue && !Self.isDemo { preferences.focusMinutes = focusMinutes } }
     }
 
     /// The reminder/event editor over the widgets. Open = the panel stays open and takes typing.
     @Published var editor: EditorItem? {
-        didSet { if (editor == nil) != (oldValue == nil) { onTypingChanged?(editor != nil) } }
+        didSet { typingMaybeChanged() }
+    }
+    /// The focus length is being typed (the number turned into a text box).
+    @Published private(set) var editingFocusMinutes = false {
+        didSet { typingMaybeChanged() }
+    }
+    /// Something in the panel takes typing: the editor or the focus length box.
+    var wantsTyping: Bool { editor != nil || editingFocusMinutes }
+    private var lastWantsTyping = false
+    private func typingMaybeChanged() {
+        guard wantsTyping != lastWantsTyping else { return }
+        lastWantsTyping = wantsTyping
+        onTypingChanged?(wantsTyping)
     }
     /// Bumped every time the editor opens, so its fields start fresh.
     @Published private(set) var editorToken = 0
@@ -214,7 +227,7 @@ final class AppModel: ObservableObject {
             self.updateFocusTicker()
         }
         showClosedMusic = preferences.showClosedMusic
-        focusMinutes = preferences.focusMinutes
+        focusMinutes = Self.isDemo ? 25 : preferences.focusMinutes
         lastFocusMinutes = focusMinutes
         // A song may already be playing at launch; no notification arrives for it until it changes.
         if showClosedMusic && isMusicRunning { refreshMusic() }
@@ -526,6 +539,30 @@ final class AppModel: ObservableObject {
     func stepFocus(_ direction: Int) {
         focusMinutes = FocusLength.step(focusMinutes, by: direction)
         DebugTools.log("focus minutes: \(focusMinutes)")
+    }
+
+    /// Click on the focus length: it becomes a text box.
+    func beginFocusMinutesTyping() {
+        guard !isEditing, editor == nil, focus.phase == .idle else { return }
+        editingFocusMinutes = true
+        DebugTools.log("focus typing: on")
+    }
+
+    /// Return or Start: keep a readable length (5…180). Esc or nil: keep the old one.
+    func endFocusMinutesTyping(_ text: String?) {
+        guard editingFocusMinutes else { return }
+        if let text, let minutes = FocusLength.parse(text) {
+            focusMinutes = minutes
+            DebugTools.log("focus minutes: \(minutes)")
+        }
+        editingFocusMinutes = false
+        DebugTools.log("focus typing: off")
+    }
+
+    /// Start on the focus widget; `typed` is the text box's content when it's open.
+    func startFocusFromWidget(typed: String?) {
+        if editingFocusMinutes { endFocusMinutesTyping(typed) }
+        startFocus(.focus, minutes: focusMinutes)
     }
 
     func startFocus(_ kind: FocusKind, minutes: Int) {

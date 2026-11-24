@@ -119,6 +119,25 @@ public enum FocusLength {
         return clamp(snapped)
     }
 
+    /// A typed length: "45", "45 min", "45m", "1:30", "1h", "1h30", "2h 30m". Kept within 5…180.
+    /// Nil when it can't be read or is zero.
+    public static func parse(_ text: String) -> Int? {
+        let t = text.lowercased().filter { !$0.isWhitespace }
+        guard !t.isEmpty else { return nil }
+        var minutes: Int?
+        if let m = t.wholeMatch(of: /(\d{1,2}):(\d{2})/) {
+            let h = Int(m.1)!, mm = Int(m.2)!
+            minutes = mm < 60 ? h * 60 + mm : nil
+        } else if let m = t.wholeMatch(of: /(\d{1,2})h(?:(\d{1,2})(?:m|min|mins)?)?/) {
+            let mm = m.2.map { Int($0)! } ?? 0
+            minutes = mm < 60 ? Int(m.1)! * 60 + mm : nil
+        } else if let m = t.wholeMatch(of: /(\d{1,4})(?:m|min|mins|minutes)?/) {
+            minutes = Int(m.1)!
+        }
+        guard let minutes, minutes > 0 else { return nil }
+        return clamp(minutes)
+    }
+
     public static func clamp(_ minutes: Int) -> Int {
         min(max(minutes, range.lowerBound), range.upperBound)
     }

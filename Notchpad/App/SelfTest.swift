@@ -13,6 +13,7 @@ extension AppModel {
         case "edit-event": if let e = events.first { editEvent(e) }
         case "readonly-event":
             if var e = events.first { e.isEditable = false; editEvent(e) }
+        case "focus-length": beginFocusMinutesTyping()
         default: DebugTools.log("unknown editor kind: \(kind)")
         }
     }

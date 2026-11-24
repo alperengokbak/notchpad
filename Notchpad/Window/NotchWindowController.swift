@@ -94,10 +94,11 @@ final class NotchWindowController {
                 MainActor.assumeIsolated {
                     // Checked a moment later: a menu or picker opening inside the panel gives focus straight back.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        guard let self, self.model.editor != nil, !self.model.isEditing,
+                        guard let self, self.model.wantsTyping, !self.model.isEditing,
                               self.panel?.isKeyWindow != true else { return }
                         DebugTools.log("editor: lost focus")
                         self.model.cancelEditor()
+                        self.model.endFocusMinutesTyping(nil)
                     }
                 }
             }
@@ -125,7 +126,7 @@ final class NotchWindowController {
 
     /// Takes keyboard focus while edit mode or the editor needs it; hands it back to his app after.
     private func updateKeyFocus() {
-        let want = model.isEditing || model.editor != nil
+        let want = model.isEditing || model.wantsTyping
         guard want != hasKeyFocus else {
             if want { panel?.makeKey() }
             return
