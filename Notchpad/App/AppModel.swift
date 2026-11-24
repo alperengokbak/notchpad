@@ -108,7 +108,8 @@ final class AppModel: ObservableObject {
     }
     /// The black extensions beside the notch while it's closed (focus, mic and cover left; bars right).
     var closedWings: WingWidths {
-        NotchGeometry.wings(focus: focus.isActive, mic: mic.isActive, music: showClosedMusic && music.isPlaying)
+        NotchGeometry.wings(focus: focus.isActive, mic: mic.isActive, music: showClosedMusic && music.isPlaying,
+                            charging: chargingShown)
     }
     private(set) var lastFocusMinutes = 25
     /// Focus length picked with − / + (remembered between launches).
@@ -158,6 +159,31 @@ final class AppModel: ObservableObject {
     /// The folder icon that just took dropped files (shows a tick for a moment).
     @Published private(set) var copiedLauncherID: UUID?
     private var launcherWatch: AnyCancellable?
+
+    /// Mirror widget's camera (off until he clicks the widget).
+    let camera = CameraMirror()
+    /// Settings-menu switches.
+    @Published var swipeToChangeSongs = true {
+        didSet { if !Self.isDemo { preferences.swipeToChangeSongs = swipeToChangeSongs } }
+    }
+    @Published var shelfNewestFirst = false {
+        didSet { if !Self.isDemo { preferences.shelfNewestFirst = shelfNewestFirst } }
+    }
+    @Published var openOnFileDrag = true {
+        didSet { if !Self.isDemo { preferences.openOnFileDrag = openOnFileDrag } }
+    }
+    @Published var showChargingAnimation = true {
+        didSet {
+            guard showChargingAnimation != oldValue else { return }
+            if !Self.isDemo { preferences.showChargingAnimation = showChargingAnimation }
+            if showChargingAnimation { powerMonitor.start() } else { powerMonitor.stop(); chargingPercent = nil; chargingShown = false }
+        }
+    }
+    /// The "plugged in" badge beside the closed notch (a few seconds after the charger goes in).
+    @Published private(set) var chargingShown = false
+    @Published private(set) var chargingPercent: Int?
+    private let powerMonitor = PowerMonitor()
+    private var lastPower: PowerState?
 
     /// Shown in the editor when EventKit refused a change.
     @Published var editorError: String?
@@ -244,6 +270,14 @@ final class AppModel: ObservableObject {
             self.updateFocusTicker()
         }
         showClosedMusic = preferences.showClosedMusic
+        swipeToChangeSongs = preferences.swipeToChangeSongs
+        shelfNewestFirst = preferences.shelfNewestFirst
+        openOnFileDrag = preferences.openOnFileDrag
+        showChargingAnimation = preferences.showChargingAnimation
+        powerMonitor.onChange = { [weak self] state in self?.powerChanged(state) }
+        lastPower = PowerMonitor.read()
+        if showChargingAnimation && !Self.isDemo { powerMonitor.start() }
+        if CommandLine.arguments.contains("--charging-demo") { chargingPercent = 76; chargingShown = true }
         // The panel redraws when the Shortcuts widget's list changes.
         launcherWatch = launcher.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         if Self.isDemo {
@@ -288,6 +322,8 @@ final class AppModel: ObservableObject {
 
     /// Starts what the visible widgets need and stops the rest. Safe to call any number of times.
     func updateDataSources() {
+        // The camera never keeps running once the Mirror widget isn't on screen.
+        if !(isOpen && layout.selectedTab.widgets.contains { $0.kind == .mirror }) { camera.stop() }
         let needed = neededSources
         let newlyNeeded = needed.subtracting(activeSources)
         activeSources = needed
@@ -673,6 +709,23 @@ final class AppModel: ObservableObject {
             DebugTools.log("reminder completed")
             self.refreshReminders()
         }
+    }
+
+    // MARK: Swipe and charging
+
+    func swipeMusic(_ action: SwipeAction) {
+        DebugTools.log("swipe: \(action)")
+        guard music != .notRunning else { return }
+        sendMusic(action == .next ? .next : .previous)
+    }
+
+    private func powerChanged(_ state: PowerState) {
+        defer { lastPower = state }
+        guard showChargingAnimation, PowerState.justPluggedIn(previous: lastPower, current: state) else { return }
+        DebugTools.log("charging: \(state.percent.map(String.init) ?? "?")%")
+        chargingPercent = state.percent
+        chargingShown = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in self?.chargingShown = false }
     }
 
     // MARK: Shortcuts widget

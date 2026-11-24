@@ -7,6 +7,8 @@ final class MouseMonitors {
     var onMouseMoved: ((CGPoint) -> Void)?
     /// Called while a file is being dragged anywhere on screen (from Finder or any app).
     var onFileDragMoved: ((CGPoint) -> Void)?
+    /// Trackpad and mouse-wheel scrolls anywhere (for the swipe-to-change-songs gesture).
+    var onScroll: ((NSEvent) -> Void)?
 
     private var tokens: [Any] = []
     private let dragPasteboard = NSPasteboard(name: .drag)
@@ -21,6 +23,14 @@ final class MouseMonitors {
         }) { tokens.append(g) }
         if let l = NSEvent.addLocalMonitorForEvents(matching: mask, handler: { [weak self] event in
             MainActor.assumeIsolated { self?.onMouseMoved?(NSEvent.mouseLocation) }
+            return event
+        }) { tokens.append(l) }
+
+        if let g = NSEvent.addGlobalMonitorForEvents(matching: .scrollWheel, handler: { [weak self] event in
+            MainActor.assumeIsolated { self?.onScroll?(event) }
+        }) { tokens.append(g) }
+        if let l = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel, handler: { [weak self] event in
+            MainActor.assumeIsolated { self?.onScroll?(event) }
             return event
         }) { tokens.append(l) }
 

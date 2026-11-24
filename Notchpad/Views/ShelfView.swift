@@ -7,8 +7,11 @@ struct ShelfView: View {
     @ObservedObject var store: ShelfStore
     let isDropTargeted: Bool
     let onDragActive: (Bool) -> Void
+    var newestFirst = false
     var asGrid = false
     var iconScale: CGFloat = 1
+
+    private var shown: [ShelfItem] { ShelfOrder.arrange(store.items, newestFirst: newestFirst) }
 
     var body: some View {
         ZStack {
@@ -20,7 +23,7 @@ struct ShelfView: View {
             } else if asGrid {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 54 * iconScale), spacing: 8)], spacing: 8) {
-                        ForEach(store.items) { item in
+                        ForEach(shown) { item in
                             ShelfItemView(item: item, store: store, onDragActive: onDragActive, scale: iconScale)
                         }
                     }
@@ -29,7 +32,7 @@ struct ShelfView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(store.items) { item in ShelfItemView(item: item, store: store, onDragActive: onDragActive) }
+                        ForEach(shown) { item in ShelfItemView(item: item, store: store, onDragActive: onDragActive) }
                     }
                     .padding(.horizontal, 10)
                 }

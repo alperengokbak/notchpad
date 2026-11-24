@@ -45,6 +45,7 @@ If you'd rather build it yourself, see [Build](#build).
 - **Focus timer:** pick a length with − and + (5 to 180 minutes, in 5-minute steps), or click the number and type one (for example 40, 1:30 or 1h15), then click Start. Notchpad remembers the length you used last. When you close the panel, the countdown stays visible on a small black strip left of the notch (red dot for focus, green for a break). When the time is up you hear a sound and get a notification, then you can start a 5 minute break or go again.
 - **Tailscale:** your Tailscale status, a Connect/Disconnect button and your devices. Click a device to copy its Tailscale IP. It uses the command line tool inside the Tailscale app, so it only works if Tailscale is installed. If the Tailscale app isn't running when you click Connect, Notchpad starts it first. It checks every 5 seconds, and only while the Tailscale widget is on screen.
 - **Shortcuts:** one-click icons for the apps, shortcuts and folders you use most. Click the Add tile (always right after the last icon) and choose App…, Shortcut (any shortcut you made in the Shortcuts app) or Folder…. The folder picker opens in CloudStorage, where Google Drive for desktop keeps "My Drive". Click an icon to open the app, run the shortcut, or open the folder in Finder. Drop files on a folder icon to copy them into it; the originals stay where they were. Hover an icon to remove it. Bigger sizes show the icons' names.
+- **Mirror:** your camera as a mirror, to check how you look before a call. The camera only turns on when you click the widget, and it turns off when you click again, close the panel or switch tabs.
 
 ## Tabs and widgets
 
@@ -64,6 +65,7 @@ Each part of the panel is a widget, and you choose which widgets go on which tab
 | Focus timer | Small |
 | Tailscale | Medium, Full |
 | Shortcuts | Small, Medium, Wide |
+| Mirror | Small, Medium, Wide |
 
 Small is half a column, Medium is one column, Wide is two columns and Full is the whole tab.
 
@@ -72,6 +74,8 @@ Click Done when you're finished. You can have up to four tabs, and the same widg
 When there's no more room left of the notch, the next tabs go to the right of it. Your layout is saved in `~/Library/Application Support/Notchpad/layout.json`. If that file gets damaged, Notchpad starts with the default layout and keeps the damaged file next to it as `layout-broken-<date>.json`.
 
 Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Choose background image…", "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+
+The same menu has switches for: **swiping on the notch to change songs** (two fingers left for the next song, right for the previous one, with the pointer over the notch, open or closed), **showing charging on the closed notch** (a green bolt and your battery level for a few seconds when you plug in the charger), **showing the newest shelf files first**, and **opening the panel when you drag files to the notch**.
 
 **Background image:** pick any picture (JPEG, PNG, HEIC…) with "Choose background image…". It fills the open panel, cropped evenly to its wide shape (never stretched), and is darkened so the text stays readable. It never covers or blocks a button, and the closed notch stays black. Notchpad keeps its own smaller copy, so you can move or delete the original. "Remove background image" goes back to plain black.
 

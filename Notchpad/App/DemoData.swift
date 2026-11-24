@@ -92,6 +92,22 @@ enum DemoData {
         ]
     }
 
+    /// Gallery previews never touch the camera.
+    static let previewCamera = CameraMirror()
+
+    /// A drawn stand-in for the camera picture (a soft room with a person shape), never a real photo.
+    static func mirrorImage() -> NSImage {
+        NSImage(size: NSSize(width: 480, height: 320), flipped: false) { rect in
+            NSGradient(colors: [NSColor(red: 0.32, green: 0.36, blue: 0.45, alpha: 1),
+                                NSColor(red: 0.62, green: 0.55, blue: 0.5, alpha: 1)])?.draw(in: rect, angle: 70)
+            NSColor(red: 0.9, green: 0.78, blue: 0.68, alpha: 0.9).setFill()
+            NSBezierPath(ovalIn: NSRect(x: 195, y: 150, width: 90, height: 110)).fill()
+            NSColor(red: 0.2, green: 0.24, blue: 0.33, alpha: 1).setFill()
+            NSBezierPath(roundedRect: NSRect(x: 140, y: -40, width: 200, height: 190), xRadius: 90, yRadius: 90).fill()
+            return true
+        }
+    }
+
     static let tailscale = TailscaleStatus(state: .connected, devices: [
         TailscaleDevice(id: "d1", name: "macbook", ipv4: "100.64.0.1", isOnline: true, isSelf: true),
         TailscaleDevice(id: "d2", name: "iphone", ipv4: "100.64.0.2", isOnline: true, isSelf: false),
@@ -126,6 +142,7 @@ enum DemoData {
                      tailscale: tailscale, tailscaleBusy: false, tailscaleMessage: nil, copiedDeviceID: nil,
                      shelf: previewShelf, shelfDropTargeted: false, actions: .none)
         inputs.launcherItems = launcherItems()
+        inputs.mirrorDemoImage = mirrorImage()
         return inputs
     }
 }

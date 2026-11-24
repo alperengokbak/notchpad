@@ -23,12 +23,12 @@ struct WidgetView: View {
         case (.music, _):
             MusicMedium(inputs: inputs)
         case (.shelf, .small):
-            ShelfView(store: inputs.shelf, isDropTargeted: inputs.shelfDropTargeted, onDragActive: a.shelfDragActive)
+            ShelfView(store: inputs.shelf, isDropTargeted: inputs.shelfDropTargeted, onDragActive: a.shelfDragActive, newestFirst: inputs.shelfNewestFirst)
         case (.shelf, .medium):
-            ShelfView(store: inputs.shelf, isDropTargeted: inputs.shelfDropTargeted, onDragActive: a.shelfDragActive,
+            ShelfView(store: inputs.shelf, isDropTargeted: inputs.shelfDropTargeted, onDragActive: a.shelfDragActive, newestFirst: inputs.shelfNewestFirst,
                       asGrid: true)
         case (.shelf, _):
-            ShelfView(store: inputs.shelf, isDropTargeted: inputs.shelfDropTargeted, onDragActive: a.shelfDragActive,
+            ShelfView(store: inputs.shelf, isDropTargeted: inputs.shelfDropTargeted, onDragActive: a.shelfDragActive, newestFirst: inputs.shelfNewestFirst,
                       asGrid: true, iconScale: 1.4)
         case (.reminders, .full):
             RemindersTab(inputs: inputs)
@@ -48,6 +48,8 @@ struct WidgetView: View {
             TailscaleCompact(inputs: inputs)
         case (.launcher, _):
             LauncherView(inputs: inputs, size: size)
+        case (.mirror, _):
+            MirrorView(camera: inputs.camera, demoImage: inputs.mirrorDemoImage)
         }
     }
 }

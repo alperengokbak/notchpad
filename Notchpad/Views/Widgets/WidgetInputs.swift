@@ -61,6 +61,10 @@ struct WidgetInputs {
     var launcherItems: [LauncherItem] = []
     var shortcutNames: [String] = []
     var copiedLauncherID: UUID?
+    /// Mirror widget: the camera, or a drawn picture for previews and demo screenshots.
+    var camera: CameraMirror = DemoData.previewCamera
+    var mirrorDemoImage: NSImage?
+    var shelfNewestFirst = false
     var tailscale: TailscaleStatus?
     var tailscaleBusy: Bool
     var tailscaleMessage: String?
@@ -114,6 +118,9 @@ extension AppModel {
         inputs.launcherItems = launcher.items
         inputs.shortcutNames = shortcutNames
         inputs.copiedLauncherID = copiedLauncherID
+        inputs.camera = camera
+        inputs.mirrorDemoImage = Self.isDemo ? DemoData.mirrorImage() : nil
+        inputs.shelfNewestFirst = shelfNewestFirst
         return inputs
     }
 }

@@ -42,7 +42,7 @@ public enum WidgetSize: String, Codable, CaseIterable, Sendable {
 
 /// Every widget Notchpad can show.
 public enum WidgetKind: String, Codable, CaseIterable, Sendable {
-    case music, shelf, reminders, nextEvent, focus, tailscale, launcher
+    case music, shelf, reminders, nextEvent, focus, tailscale, launcher, mirror
 
     public var title: String {
         switch self {
@@ -53,6 +53,7 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .focus: "Focus"
         case .tailscale: "Tailscale"
         case .launcher: "Shortcuts"
+        case .mirror: "Mirror"
         }
     }
 
@@ -66,12 +67,13 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .focus: "timer"
         case .tailscale: "network"
         case .launcher: "square.grid.2x2.fill"
+        case .mirror: "person.crop.square"
         }
     }
 
     public var category: WidgetCategory {
         switch self {
-        case .music, .shelf: .media
+        case .music, .shelf, .mirror: .media
         case .reminders, .nextEvent, .focus, .launcher: .productivity
         case .tailscale: .network
         }
@@ -87,6 +89,7 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .focus: [.small]
         case .tailscale: [.medium, .full]
         case .launcher: [.small, .medium, .wide]
+        case .mirror: [.small, .medium, .wide]
         }
     }
 
@@ -96,7 +99,7 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .reminders: [.reminders]
         case .nextEvent: [.calendar]
         case .tailscale: [.tailscale]
-        case .shelf, .focus, .launcher: []
+        case .shelf, .focus, .launcher, .mirror: []
         }
     }
 }

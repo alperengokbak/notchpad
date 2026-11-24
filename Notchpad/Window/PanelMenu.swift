@@ -8,7 +8,8 @@ enum PanelMenu {
                      micShown: Bool, onToggleMic: @escaping () -> Void,
                      closedMusicShown: Bool, onToggleClosedMusic: @escaping () -> Void,
                      hasBackground: Bool = false, onChooseBackground: @escaping () -> Void = {},
-                     onRemoveBackground: @escaping () -> Void = {}) -> NSMenu {
+                     onRemoveBackground: @escaping () -> Void = {},
+                     toggles: [MenuToggle] = []) -> NSMenu {
         let menu = NSMenu()
         let edit = NSMenuItem(title: editing ? "Done editing" : "Edit widgets…",
                               action: #selector(MenuTarget.editWidgets), keyEquivalent: "")
@@ -38,6 +39,11 @@ enum PanelMenu {
         music.state = closedMusicShown ? .on : .off
         MenuTarget.shared.onToggleClosedMusic = onToggleClosedMusic
         menu.addItem(music)
+        for t in toggles {
+            let item = ClosureMenuItem(t.title, t.action)
+            item.state = t.isOn ? .on : .off
+            menu.addItem(item)
+        }
         menu.addItem(.separator())
         let chooseBG = NSMenuItem(title: hasBackground ? "Change background image…" : "Choose background image…",
                                   action: #selector(MenuTarget.chooseBackground), keyEquivalent: "")
@@ -104,4 +110,11 @@ final class MenuTarget: NSObject {
     @objc func toggleLogin() {
         try? LoginItem.setEnabled(!LoginItem.isEnabled)
     }
+}
+
+/// An on/off item in the settings menu.
+struct MenuToggle {
+    let title: String
+    let isOn: Bool
+    let action: () -> Void
 }

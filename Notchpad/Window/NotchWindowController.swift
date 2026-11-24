@@ -39,6 +39,7 @@ final class NotchWindowController {
         }
         monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
         monitors.onFileDragMoved = { [weak self] point in self?.fileDragMoved(to: point) }
+        monitors.onScroll = { [weak self] event in self?.scrolled(event) }
         monitors.start()
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification,
                                                object: nil, queue: .main) { [weak self] _ in
@@ -84,6 +85,15 @@ final class NotchWindowController {
             host.hasBackground = { [weak model] in model?.backgroundImage != nil }
             host.onChooseBackground = { [weak model] in model?.chooseBackground() }
             host.onRemoveBackground = { [weak model] in model?.removeBackground() }
+            host.toggles = { [weak model] in
+                guard let model else { return [] }
+                return [
+                    MenuToggle(title: "Swipe on the notch to change songs", isOn: model.swipeToChangeSongs) { model.swipeToChangeSongs.toggle() },
+                    MenuToggle(title: "Show charging on closed notch", isOn: model.showChargingAnimation) { model.showChargingAnimation.toggle() },
+                    MenuToggle(title: "Shelf: newest files first", isOn: model.shelfNewestFirst) { model.shelfNewestFirst.toggle() },
+                    MenuToggle(title: "Open when dragging files to the notch", isOn: model.openOnFileDrag) { model.openOnFileDrag.toggle() },
+                ]
+            }
             host.onEditWidgets = { [weak model] in
                 guard let model else { return }
                 if model.isEditing { model.endEditing() } else { model.beginEditing() }
@@ -202,9 +212,34 @@ final class NotchWindowController {
         sync()
     }
 
+    private var swipe = SwipeDetector()
+
+    /// Two-finger swipe over the notch (open or closed): left = next song, right = previous.
+    private func scrolled(_ event: NSEvent) {
+        guard model.swipeToChangeSongs else { return }
+        let zone = NotchGeometry.hotZone(notch: notch, wings: machine.isOpen ? WingWidths(left: 0, right: 0) : model.closedWings)
+        let phase: SwipeDetector.Phase
+        switch event.phase {
+        case .began: phase = .began
+        case .changed: phase = .changed
+        case .ended, .cancelled: phase = .ended
+        default: phase = .other
+        }
+        // Only gestures that start over the notch count; the rest of the screen scrolls as usual.
+        if phase == .began, !zone.contains(NSEvent.mouseLocation) { swipe = SwipeDetector(); swipeActive = false; return }
+        if phase == .began { swipeActive = true }
+        guard swipeActive else { return }
+        if let action = swipe.feed(dx: event.scrollingDeltaX, dy: event.scrollingDeltaY, phase: phase,
+                                   momentum: !event.momentumPhase.isEmpty, inverted: event.isDirectionInvertedFromDevice) {
+            model.swipeMusic(action)
+        }
+        if phase == .ended { swipeActive = false }
+    }
+    private var swipeActive = false
+
     /// A file drag coming within 40 pt below the hot zone opens the panel straight away.
     private func fileDragMoved(to point: CGPoint) {
-        guard !machine.isOpen else { return }
+        guard !machine.isOpen, model.openOnFileDrag else { return }
         var zone = NotchGeometry.hotZone(notch: notch)
         zone.origin.y -= 40
         zone.size.height += 40
@@ -252,6 +287,7 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     var hasBackground: () -> Bool = { false }
     var onChooseBackground: () -> Void = {}
     var onRemoveBackground: () -> Void = {}
+    var toggles: () -> [MenuToggle] = { [] }
 
     override func rightMouseDown(with event: NSEvent) {
         NSMenu.popUpContextMenu(makeMenu(), with: event, for: self)
@@ -270,7 +306,7 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
                        micShown: micShown(), onToggleMic: onToggleMic,
                        closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic,
                        hasBackground: hasBackground(), onChooseBackground: onChooseBackground,
-                       onRemoveBackground: onRemoveBackground)
+                       onRemoveBackground: onRemoveBackground, toggles: toggles())
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }

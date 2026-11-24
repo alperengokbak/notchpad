@@ -33,8 +33,12 @@ struct NotchRootView: View {
                     }
                 }
                 .overlay(alignment: .topTrailing) {
-                    if musicWings {
-                        MusicBarsWing().frame(width: wings.right, height: model.notchSize.height)
+                    if wings.right > 0 {
+                        HStack(spacing: 0) {
+                            if musicWings { MusicBarsWing().frame(width: 36) }
+                            if !model.isOpen && model.chargingShown { ChargingWing(percent: model.chargingPercent).frame(width: 70) }
+                        }
+                        .frame(width: wings.right, height: model.notchSize.height, alignment: .leading)
                     }
                 }
                 .offset(x: (wings.right - wings.left) / 2)

@@ -80,3 +80,10 @@ private func swipe(_ d: inout SwipeDetector, fingerDX: Double, dy: Double = 0, i
     #expect(NotchGeometry.wings(focus: true, mic: false, music: true, charging: true) == WingWidths(left: 106, right: 106))
     #expect(NotchGeometry.wings(focus: true, mic: false, music: true) == WingWidths(left: 106, right: 36))
 }
+
+@Test func mirrorWidgetInCatalog() {
+    #expect(WidgetKind.mirror.title == "Mirror")
+    #expect(WidgetKind.mirror.category == .media)
+    #expect(WidgetKind.mirror.sizes == [.small, .medium, .wide])
+    #expect(WidgetKind.mirror.dataSources.isEmpty) // the camera starts only on a click
+}

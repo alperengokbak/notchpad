@@ -28,6 +28,8 @@
 	<string>Notchpad shows and controls the song playing in Apple Music or Spotify.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Notchpad shows your remaining events for today.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>The Mirror widget shows your camera, only after you click it.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Alperen Gökbak. MIT licence.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
