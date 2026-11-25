@@ -139,7 +139,7 @@ extension AppModel {
         inputs.shortcutNames = shortcutNames
         inputs.copiedLauncherID = copiedLauncherID
         inputs.camera = camera
-        inputs.mirrorDemoImage = Self.isDemo ? DemoData.mirrorImage() : nil
+        inputs.mirrorDemoImage = Self.isDemo && DebugTools.argument(after: "--editor") != "mirror-busy" ? DemoData.mirrorImage() : nil
         inputs.shelfNewestFirst = shelfNewestFirst
         inputs.clipboard = clipboard
         inputs.recentFiles = recentFiles

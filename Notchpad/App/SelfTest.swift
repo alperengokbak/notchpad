@@ -21,6 +21,7 @@ extension AppModel {
             if var e = events.first { e.isEditable = false; editEvent(e) }
         case "focus-length": beginFocusMinutesTyping()
         case "quick-note": beginNoteEditing()
+        case "mirror-busy": camera.showBusyForDebug()
         default: DebugTools.log("unknown editor kind: \(kind)")
         }
     }

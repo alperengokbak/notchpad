@@ -4,18 +4,22 @@ import SwiftUI
 
 /// The Mirror widget's camera. Runs only after a click on the widget, and stops when the panel
 /// closes or the widget leaves the screen, so the camera light never comes on by surprise.
+/// Every start sets the camera up fresh (whichever camera is there now, the built-in one first),
+/// so a call app (Teams, Zoom…) taking or switching the camera can't leave it stuck.
 @MainActor
 final class CameraMirror: ObservableObject {
-    enum State: Equatable { case off, starting, running, denied, noCamera }
+    enum State: Equatable { case off, starting, running, denied, noCamera, busy }
 
     @Published private(set) var state: State = .off
-    let session = AVCaptureSession()
+    /// Rebuilt on every start.
+    @Published private(set) var session = AVCaptureSession()
     private let queue = DispatchQueue(label: "notchpad.camera")
-    private var configured = false
+    private var observers: [NSObjectProtocol] = []
+    private var attempt = 0
 
     func start() {
         DebugTools.log("mirror: start pressed, state \(state), permission \(AVCaptureDevice.authorizationStatus(for: .video).rawValue)")
-        guard state == .off || state == .denied else { return }
+        guard state != .running, state != .starting else { return }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             run()
@@ -26,7 +30,6 @@ final class CameraMirror: ObservableObject {
                     guard let self else { return }
                     guard granted else { self.state = .denied; return }
                     // Answering macOS's question usually closes the panel (stop() sets .off).
-                    // Only start if the widget is still waiting; otherwise the next click starts it.
                     if self.state == .starting { self.run() }
                 }
             }
@@ -35,35 +38,80 @@ final class CameraMirror: ObservableObject {
         }
     }
 
+    /// `--editor mirror-busy`: shows the busy message for a screenshot.
+    func showBusyForDebug() { state = .busy }
+
     func stop() {
-        guard state == .running || state == .starting else { return }
+        guard state == .running || state == .starting || state == .busy else { return }
+        attempt += 1
         state = .off
-        let session = session
-        queue.async { session.stopRunning() }
+        tearDown()
         DebugTools.log("mirror: off")
     }
 
+    /// The built-in camera if there is one, otherwise any camera (USB, Continuity Camera).
+    private static func pickCamera() -> AVCaptureDevice? {
+        let found = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .external, .continuityCamera],
+                                                     mediaType: .video, position: .unspecified).devices
+        return found.first { $0.deviceType == .builtInWideAngleCamera } ?? found.first ?? AVCaptureDevice.default(for: .video)
+    }
+
     private func run() {
-        if !configured {
-            guard let device = AVCaptureDevice.default(for: .video),
-                  let input = try? AVCaptureDeviceInput(device: device), session.canAddInput(input)
-            else { state = .noCamera; return }
-            session.beginConfiguration()
-            session.sessionPreset = .medium
-            session.addInput(input)
-            session.commitConfiguration()
-            configured = true
+        tearDown()
+        guard let device = Self.pickCamera() else { state = .noCamera; return }
+        let fresh = AVCaptureSession()
+        guard let input = try? AVCaptureDeviceInput(device: device), fresh.canAddInput(input) else {
+            state = .busy
+            DebugTools.log("mirror: camera can't be opened (in use elsewhere: \(device.isInUseByAnotherApplication))")
+            return
         }
+        fresh.beginConfiguration()
+        fresh.sessionPreset = .medium
+        fresh.addInput(input)
+        fresh.commitConfiguration()
+        session = fresh
+        watch(fresh, device: device)
         state = .starting
-        let session = session
+        attempt += 1
+        let mine = attempt
         queue.async {
-            session.startRunning()
+            fresh.startRunning()
             DispatchQueue.main.async { [weak self] in
-                guard let self, self.state == .starting else { session.stopRunning(); return }
-                self.state = session.isRunning ? .running : .off
-                DebugTools.log("mirror: \(self.state)")
+                guard let self, self.attempt == mine, self.state == .starting else { fresh.stopRunning(); return }
+                self.state = fresh.isRunning ? .running : .busy
+                DebugTools.log("mirror: \(self.state) (\(device.localizedName))")
             }
         }
+        // A camera that never starts (held by another app) shows "busy" instead of spinning forever.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
+            guard let self, self.attempt == mine, self.state == .starting else { return }
+            self.state = .busy
+            DebugTools.log("mirror: start timed out")
+        }
+    }
+
+    /// Another app stopping the camera, an error, or the camera going away: show "busy" (click to retry).
+    private func watch(_ session: AVCaptureSession, device: AVCaptureDevice) {
+        let center = NotificationCenter.default
+        let interrupted: (Notification) -> Void = { [weak self] note in
+            MainActor.assumeIsolated {
+                guard let self, self.session === session, self.state == .running else { return }
+                self.state = .busy
+                DebugTools.log("mirror: interrupted (\(note.name.rawValue))")
+            }
+        }
+        observers = [
+            center.addObserver(forName: AVCaptureSession.runtimeErrorNotification, object: session, queue: .main, using: interrupted),
+            center.addObserver(forName: AVCaptureSession.didStopRunningNotification, object: session, queue: .main, using: interrupted),
+            center.addObserver(forName: AVCaptureDevice.wasDisconnectedNotification, object: device, queue: .main, using: interrupted),
+        ]
+    }
+
+    private func tearDown() {
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers.removeAll()
+        let old = session
+        queue.async { if old.isRunning { old.stopRunning() } }
     }
 }
 

@@ -134,7 +134,9 @@ public struct PanelLayout: Codable, Equatable, Sendable {
 
     public enum AddResult: Equatable, Sendable {
         case added(UUID)
-        /// The tab was full, so a new tab was made for it (and selected).
+        /// The tab was full, so it went on another tab that had room (now selected).
+        case addedToOtherTab(UUID)
+        /// The tab was full and no other tab had room, so a new tab was made for it (and selected).
         case addedToNewTab(UUID)
         case refused(AddCheck)
     }
@@ -147,7 +149,13 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         case .alreadyOnTab:
             return .refused(.alreadyOnTab)
         case .noRoom:
-            guard kind.sizes.contains(size), let newTab = addTab() else { return .refused(.noRoom) }
+            guard kind.sizes.contains(size) else { return .refused(.noRoom) }
+            if let other = tabs.first(where: { $0.id != id && canAdd(kind, size: size, toTab: $0.id) == .ok })?.id,
+               addWidget(kind, size: size, toTab: other) {
+                selectedTabID = other
+                return .addedToOtherTab(other)
+            }
+            guard let newTab = addTab() else { return .refused(.noRoom) }
             guard addWidget(kind, size: size, toTab: newTab) else { _ = deleteTab(newTab); selectedTabID = id; return .refused(.noRoom) }
             return .addedToNewTab(newTab)
         }

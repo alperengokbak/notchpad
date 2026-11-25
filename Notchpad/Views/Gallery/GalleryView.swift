@@ -110,7 +110,8 @@ struct GalleryView: View {
     private func tile(_ kind: WidgetKind, _ size: WidgetSize, inputs: WidgetInputs) -> some View {
         let check = model.layout.canAdd(kind, size: size, toTab: model.selectedTabID)
         // A full tab is no dead end: the click puts the widget on a new tab (while there's room for one).
-        let clickable = check == .ok || (check == .noRoom && model.layout.tabs.count < PanelLayout.maxTabs)
+        let clickable = check == .ok || (check == .noRoom && (model.layout.tabs.count < PanelLayout.maxTabs
+            || model.layout.tabs.contains { $0.id != model.selectedTabID && model.layout.canAdd(kind, size: size, toTab: $0.id) == .ok }))
         let tabName = model.layout.selectedTab.name
         let real = WidgetGrid.frame(size: size, column: 0, half: size == .small ? .top : .full, in: Self.area, gap: 10).size
         let shown = CGSize(width: real.width * Self.previewScale, height: real.height * Self.previewScale)
@@ -142,6 +143,8 @@ struct GalleryView: View {
         switch result {
         case .added(let id):
             text = "Added \(kind.title) to \(model.layout.tab(id)?.name ?? tabName)"; ok = true
+        case .addedToOtherTab(let id):
+            text = "\(tabName) is full, so \(kind.title) went on \(model.layout.tab(id)?.name ?? "another tab")"; ok = true
         case .addedToNewTab(let id):
             text = "\(tabName) is full, so \(kind.title) went on a new tab: \(model.layout.tab(id)?.name ?? "")"; ok = true
         case .refused(.alreadyOnTab):

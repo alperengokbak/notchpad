@@ -258,3 +258,15 @@ extension PanelLayout {
     #expect(full.tabs.count == 4)
     #expect(full.addWidgetOrNewTab(.clipboard, size: .full, preferring: full.tabs[0].id) == .refused(.noRoom))
 }
+
+@Test func fullTabUsesAnotherTabWithRoomBeforeMakingANewOne() {
+    // Her case: Home (full), Reminders (full), Tailscale (full) and an empty "Tab 1" = 4 tabs.
+    var l = PanelLayout.threeTabs()
+    _ = l.addTab()
+    let empty = l.tabs[3].id
+    l.selectedTabID = l.tabs[0].id
+    #expect(l.addWidgetOrNewTab(.mirror, size: .medium, preferring: l.tabs[0].id) == .addedToOtherTab(empty))
+    #expect(l.selectedTabID == empty)
+    #expect(l.tab(empty)?.widgets.map(\.kind) == [.mirror])
+    #expect(l.tabs.count == 4)
+}

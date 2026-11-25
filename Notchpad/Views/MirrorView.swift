@@ -13,7 +13,8 @@ struct MirrorView: View {
             if let demoImage {
                 Image(nsImage: demoImage).resizable().aspectRatio(contentMode: .fill)
             } else if camera.state == .running {
-                CameraPreview(session: camera.session)
+                // A new view for each fresh camera connection.
+                CameraPreview(session: camera.session).id(ObjectIdentifier(camera.session))
             } else {
                 placeholder
             }
@@ -37,6 +38,11 @@ struct MirrorView: View {
                     NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera")!)
                 }
                 .buttonStyle(.plain).font(.system(size: 11, weight: .semibold))
+            case .busy:
+                Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 18)).foregroundStyle(Color.orange)
+                Text("Camera is busy or stopped").font(.system(size: 11, weight: .semibold))
+                Text("Another app (like Teams) may be using it. Click to try again.")
+                    .font(.system(size: 10)).foregroundStyle(Color(white: 0.55))
             case .noCamera:
                 Image(systemName: "video.slash").font(.system(size: 18)).foregroundStyle(Color(white: 0.5))
                 Text("No camera found").font(.system(size: 11)).foregroundStyle(Color(white: 0.6))
