@@ -46,6 +46,14 @@ public final class LauncherStore: ObservableObject {
         save()
     }
 
+    /// Drag to reorder: puts the icon at `index` (in the list as it is after taking it out).
+    public func move(_ id: UUID, to index: Int) {
+        guard let from = items.firstIndex(where: { $0.id == id }) else { return }
+        let item = items.remove(at: from)
+        items.insert(item, at: min(max(index, 0), items.count))
+        save()
+    }
+
     /// For demo screenshots: replaces the list without saving.
     public func setForDemo(_ demo: [LauncherItem]) {
         items = demo
