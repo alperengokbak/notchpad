@@ -62,6 +62,14 @@ Notchpad has no Dock icon and no menu bar icon. Move the mouse onto the notch to
 
 When you install a newer version, macOS may ask for the permissions again (Calendar, Reminders, Music). That's because the download isn't signed with a paid Apple developer certificate.
 
+**Or with Homebrew:**
+
+```bash
+brew install --cask alperengokbak/notchpad/notchpad
+```
+
+Update later with `brew upgrade --cask notchpad`. The "Open Anyway" step above is still needed once.
+
 If you'd rather build it yourself, see [Build](#build).
 
 ## What's in the panel
