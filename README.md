@@ -8,6 +8,11 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
+## What's new in 1.5.2
+
+- **Mirror works again after a call.** If Teams, Zoom or another app takes over the camera (for example while you share your screen), the Mirror now says "Camera is busy" and starts again when you click it. Before, it could stay blank until you restarted Notchpad.
+- **Re-adding widgets.** When the tab you're on is full, a widget you click in the gallery now goes to another tab that has room before Notchpad makes a new one.
+
 ## What's new in 1.5.1
 
 - **Adding widgets when a tab is full.** Clicking a widget in the gallery while the tab has no room now puts it on a new tab, and the gallery tells you. Before, nothing happened.
@@ -59,7 +64,7 @@ Each of the last three has an on/off switch in the settings menu (the gear, or r
 
 ## Download
 
-1. Download **Notchpad-1.5.1.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.5.2.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
