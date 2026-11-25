@@ -15,7 +15,10 @@ enum UpdateChecker {
         URLSession.shared.dataTask(with: request) { data, response, _ in
             let ok = (response as? HTTPURLResponse)?.statusCode == 200
             let latest = data.flatMap(UpdateCheck.parseLatest)
-            let newer = latest.flatMap { UpdateCheck.isNewer($0.version, than: currentVersion) ? $0 : nil }
+            // Only a newer version whose page is Notchpad's own release page on github.com counts.
+            let newer = latest.flatMap {
+                UpdateCheck.isNewer($0.version, than: currentVersion) && UpdateCheck.isTrustedReleasePage($0.url) ? $0 : nil
+            }
             DispatchQueue.main.async { MainActor.assumeIsolated { completion(newer, ok && latest != nil) } }
         }.resume()
     }

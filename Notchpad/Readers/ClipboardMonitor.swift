@@ -51,7 +51,8 @@ final class ClipboardMonitor: ObservableObject {
         lastChange = pb.changeCount
         if ownChange == pb.changeCount { return } // our own "copy again"
         let types = (pb.types ?? []).map(\.rawValue)
-        guard !ClipboardHistory.shouldSkip(types: types) else { DebugTools.log("clipboard: skipped a secret"); return }
+        let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        guard !ClipboardHistory.shouldSkip(types: types, frontApp: front) else { DebugTools.log("clipboard: skipped a secret"); return }
         if let text = pb.string(forType: .string) {
             history.add(text: text, now: Date())
         } else if let image = NSImage(pasteboard: pb), let data = Self.smallPNG(image) {
@@ -89,6 +90,8 @@ final class ClipboardMonitor: ObservableObject {
         guard saves else { return }
         try? FileManager.default.createDirectory(at: storageURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? JSONEncoder().encode(history.forSaving).write(to: storageURL, options: .atomic)
+        // Copied text can be private: readable by this user only.
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: storageURL.path)
     }
 
     /// A copied picture, shrunk to at most 600 px so 30 of them stay small.

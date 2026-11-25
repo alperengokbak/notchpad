@@ -247,7 +247,7 @@ final class AppModel: ObservableObject {
     @Published var copiedDeviceID: String?
 
     /// `--demo`: made-up data for README screenshots, so no real reminders or files show.
-    static let isDemo = CommandLine.arguments.contains("--demo")
+    static let isDemo = DebugTools.flag("--demo")
 
     let shelf = ShelfStore(storageURL: AppModel.isDemo
         ? FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo/shelf.json")
@@ -308,10 +308,10 @@ final class AppModel: ObservableObject {
         if let arg = DebugTools.argument(after: "--tab"), let i = layout.tabIndex(matching: arg) {
             selectedTabID = layout.tabs[i].id
         }
-        if CommandLine.arguments.contains("--focus-demo") { startFocus(.focus, minutes: 25) }
+        if DebugTools.flag("--focus-demo") { startFocus(.focus, minutes: 25) }
         if Self.isDemo { loadDemo() }
         micMonitor.onChange = { [weak self] running in
-            guard let self, !CommandLine.arguments.contains("--mic-demo"), running != self.mic.isActive else { return }
+            guard let self, !DebugTools.flag("--mic-demo"), running != self.mic.isActive else { return }
             self.mic.update(isRunning: running, now: Date())
             DebugTools.log("mic: \(running)")
             self.updateFocusTicker()
@@ -337,11 +337,11 @@ final class AppModel: ObservableObject {
         powerMonitor.onChange = { [weak self] state in self?.powerChanged(state) }
         lastPower = PowerMonitor.read()
         if showChargingAnimation && !Self.isDemo { powerMonitor.start() }
-        if CommandLine.arguments.contains("--charging-demo") { chargingPercent = 76; chargingShown = true }
+        if DebugTools.flag("--charging-demo") { chargingPercent = 76; chargingShown = true }
         // The panel redraws when the Shortcuts widget's list changes.
         launcherWatch = launcher.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }
         if Self.isDemo {
-            if CommandLine.arguments.contains("--demo-background") { backgroundImage = DemoData.background() }
+            if DebugTools.flag("--demo-background") { backgroundImage = DemoData.background() }
         } else {
             backgroundImage = backgroundStore.currentURL.flatMap(NSImage.init(contentsOf:))
         }
@@ -354,7 +354,7 @@ final class AppModel: ObservableObject {
         if showClosedMusic && isMusicRunning { refreshMusic() }
         showMicIndicator = Self.micIndicatorAvailable && preferences.showMicIndicator
         if showMicIndicator { micMonitor.start() }
-        if CommandLine.arguments.contains("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
+        if DebugTools.flag("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
         if let s = DebugTools.argument(after: "--focus-seconds").flatMap(Double.init) {
             focus.start(.focus, seconds: s, now: Date())
             focusPlannedSeconds = s
@@ -894,7 +894,7 @@ final class AppModel: ObservableObject {
 
     /// The clipboard is watched only while a Clipboard widget is on one of his tabs; never in demo runs.
     func updateClipboardWatching() {
-        let allowed = !Self.isDemo || CommandLine.arguments.contains("--watch-clipboard") // tests only, never saved
+        let allowed = !Self.isDemo || DebugTools.flag("--watch-clipboard") // tests only, never saved
         let wanted = allowed && layout.tabs.contains { $0.widgets.contains { $0.kind == .clipboard } }
         if wanted { clipboard.start() } else if clipboard.isRunning { clipboard.stop() }
     }
@@ -1275,22 +1275,22 @@ extension AppModel {
         events = Array(DemoData.events(now: now).prefix(1))
         calendarAccess = .granted
         music = .notRunning
-        if CommandLine.arguments.contains("--demo-spotify") {
+        if DebugTools.flag("--demo-spotify") {
             musicSource = .spotify
             music = .playing(DemoData.song(now: now))
             artwork = DemoData.cover()
         }
-        focus = CommandLine.arguments.contains("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
+        focus = DebugTools.flag("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
         launcher.setForDemo(DemoData.launcherItems())
-        if !CommandLine.arguments.contains("--watch-clipboard") { clipboard.setForDemo(DemoData.clips(now: now)) }
+        if !DebugTools.flag("--watch-clipboard") { clipboard.setForDemo(DemoData.clips(now: now)) }
         worldClockZones = ["Europe/London", "Europe/Istanbul", "America/New_York", "Asia/Tokyo"]
         focusLog = DemoData.focusLog(now: now)
         quickNote = DemoData.note
-        if CommandLine.arguments.contains("--watch-screenshots") { // tests only: the demo shelf is a temp one
+        if DebugTools.flag("--watch-screenshots") { // tests only: the demo shelf is a temp one
             screenshotWatcher.onNew = { [weak self] urls in self?.shelf.add(urls) }
             screenshotWatcher.start()
         }
-        if CommandLine.arguments.contains("--demo-update") {
+        if DebugTools.flag("--demo-update") {
             updateAvailable = AvailableUpdate(version: "1.4.0", url: URL(string: "https://github.com/alperengokbak/notchpad/releases")!)
         }
         recentFiles = DemoData.recentFiles(now: now)

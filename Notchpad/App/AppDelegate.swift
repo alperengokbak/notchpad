@@ -13,17 +13,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             renderWidgetSheet(to: path)
             return
         }
-        let forceOpen = CommandLine.arguments.contains("--force-open")
+        let forceOpen = DebugTools.flag("--force-open")
         let controller = NotchWindowController(model: model, forceOpen: forceOpen)
         controller.start()
         windowController = controller
-        if CommandLine.arguments.contains("--edit") { model.beginEditing() }
+        if DebugTools.flag("--edit") { model.beginEditing() }
         if let kind = DebugTools.argument(after: "--editor") { model.openEditorForDebug(kind) }
         if let path = DebugTools.argument(after: "--set-background") { model.useBackground(from: URL(fileURLWithPath: path)) }
-        if CommandLine.arguments.contains("--selftest-write") {
+        if DebugTools.flag("--selftest-write") {
             Task { await model.runWriteSelfTest(); NSApp.terminate(nil) }
         }
-        if CommandLine.arguments.contains("--gallery") {
+        if DebugTools.flag("--gallery") {
             model.beginEditing()
             model.showGallery = true
         }

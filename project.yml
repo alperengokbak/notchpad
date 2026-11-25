@@ -35,7 +35,9 @@ targets:
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
         PROVISIONING_PROFILE_SPECIFIER: ""
-        ENABLE_HARDENED_RUNTIME: NO
+        # Hardened Runtime: other programs can't inject code into Notchpad and borrow its permissions.
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: Notchpad/Notchpad.entitlements
         ENABLE_APP_SANDBOX: NO
         SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "14.0"

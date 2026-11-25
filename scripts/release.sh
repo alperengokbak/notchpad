@@ -14,7 +14,14 @@ rm -rf "$OUT" && mkdir -p "$OUT"
 cp -R "$APP" "$OUT/"
 # Debug symbols hold the build machine's source paths (/Users/<name>/...): strip them, then sign.
 strip -S -x "$OUT/Notchpad.app/Contents/MacOS/Notchpad" 2>/dev/null
-codesign --force --deep --sign - "$OUT/Notchpad.app"
+codesign --force --deep --sign - --options runtime --entitlements Notchpad/Notchpad.entitlements "$OUT/Notchpad.app"
+
+# Security check: Hardened Runtime must be on.
+# (Text in a variable: `grep -q` in a pipe can end the pipe early, which `pipefail` treats as an error.)
+FLAGS=$(codesign -dv "$OUT/Notchpad.app" 2>&1 | sed -n 's/.*flags=\([^ ]*\).*/\1/p')
+if [[ "$FLAGS" != *runtime* ]]; then
+  echo "STOP: Hardened Runtime is not on ($FLAGS)"; exit 1
+fi
 
 # Privacy checks.
 if grep -rl --binary-files=text "/Users/" "$OUT/Notchpad.app" >/dev/null; then

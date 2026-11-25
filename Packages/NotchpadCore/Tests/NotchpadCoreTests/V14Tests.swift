@@ -123,3 +123,23 @@ import Testing
     #expect(WidgetKind.recentFiles.dataSources == [.recentFiles])
     #expect(WidgetKind.clipboard.category == .productivity && WidgetKind.recentFiles.category == .productivity)
 }
+
+// MARK: Security hardening
+
+@Test func onlyNotchpadReleasePagesAreOpened() {
+    #expect(UpdateCheck.isTrustedReleasePage(URL(string: "https://github.com/alperengokbak/notchpad/releases/tag/v1.6.0")!))
+    #expect(!UpdateCheck.isTrustedReleasePage(URL(string: "http://github.com/alperengokbak/notchpad/releases/tag/v1.6.0")!))
+    #expect(!UpdateCheck.isTrustedReleasePage(URL(string: "https://evil.example/alperengokbak/notchpad/releases")!))
+    #expect(!UpdateCheck.isTrustedReleasePage(URL(string: "https://github.com.evil.example/alperengokbak/notchpad/releases")!))
+    #expect(!UpdateCheck.isTrustedReleasePage(URL(string: "https://github.com/someone/else/releases/tag/v9")!))
+    #expect(!UpdateCheck.isTrustedReleasePage(URL(string: "file:///Applications/Calculator.app")!))
+}
+
+@Test func copiesInPasswordManagersAreSkipped() {
+    #expect(ClipboardHistory.shouldSkip(types: ["public.utf8-plain-text"], frontApp: "com.1password.1password"))
+    #expect(ClipboardHistory.shouldSkip(types: ["public.utf8-plain-text"], frontApp: "com.bitwarden.desktop"))
+    #expect(ClipboardHistory.shouldSkip(types: ["public.utf8-plain-text"], frontApp: "com.apple.Passwords"))
+    #expect(ClipboardHistory.shouldSkip(types: ["public.utf8-plain-text"], frontApp: "com.apple.keychainaccess"))
+    #expect(!ClipboardHistory.shouldSkip(types: ["public.utf8-plain-text"], frontApp: "com.apple.Safari"))
+    #expect(!ClipboardHistory.shouldSkip(types: ["public.utf8-plain-text"], frontApp: nil))
+}
