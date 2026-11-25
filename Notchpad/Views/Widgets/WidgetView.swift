@@ -19,7 +19,8 @@ struct WidgetView: View {
         switch (kind, size) {
         case (.music, .small):
             MusicView(state: inputs.music, artwork: inputs.artwork, now: inputs.now,
-                      onCommand: a.music, onOpenMusic: a.openMusic, onSeek: a.seekMusic, appName: inputs.musicAppName)
+                      onCommand: a.music, onOpenMusic: a.openMusic, onSeek: a.seekMusic, appName: inputs.musicAppName,
+                      volume: inputs.volume, onSetVolume: a.setVolume, onToggleMute: a.toggleMute)
         case (.music, _):
             MusicMedium(inputs: inputs)
         case (.shelf, .small):
@@ -69,7 +70,8 @@ private struct MusicMedium: View {
     var body: some View {
         MusicView(state: inputs.music, artwork: inputs.artwork, now: inputs.now,
                   onCommand: inputs.actions.music, onOpenMusic: inputs.actions.openMusic,
-                  onSeek: inputs.actions.seekMusic, appName: inputs.musicAppName, large: true)
+                  onSeek: inputs.actions.seekMusic, appName: inputs.musicAppName, large: true,
+                  volume: inputs.volume, onSetVolume: inputs.actions.setVolume, onToggleMute: inputs.actions.toggleMute)
     }
 }
 

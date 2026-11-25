@@ -77,6 +77,9 @@ final class AppModel: ObservableObject {
     private var activeSources: Set<DataSource> = []
     @Published var focus = FocusTimer()
     @Published var mic = MicActivity()
+    /// The Mac's output volume, for the Music widget's volume bar. Followed only while a Music widget shows.
+    @Published var volume: VolumeLevel = AppModel.isDemo ? VolumeLevel(volume: 0.6, muted: false) : .unavailable
+    let systemVolume = SystemVolume()
     /// The microphone indicator is switched off for now: no menu item, no CoreAudio listeners.
     /// Set to true to bring it back (people then turn it on again from the right-click menu).
     static let micIndicatorAvailable = false
@@ -335,6 +338,7 @@ final class AppModel: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in self?.runUpdateCheck(manual: false) }
         }
         powerMonitor.onChange = { [weak self] state in self?.powerChanged(state) }
+        systemVolume.onChange = { [weak self] level in self?.volume = level }
         lastPower = PowerMonitor.read()
         if showChargingAnimation && !Self.isDemo { powerMonitor.start() }
         if DebugTools.flag("--charging-demo") { chargingPercent = 76; chargingShown = true }
@@ -412,6 +416,7 @@ final class AppModel: ObservableObject {
             }
         }
         if newlyNeeded.contains(.music) { refreshMusic() }
+        updateVolumeWatching(needed.contains(.music))
         if newlyNeeded.contains(.recentFiles) { refreshRecentFiles() }
         updateTailscaleRefresh()
     }
@@ -519,6 +524,30 @@ final class AppModel: ObservableObject {
     }
 
     // MARK: Music
+
+    /// Listens to the output volume while a Music widget is on screen; stops otherwise. Demo never touches it.
+    private func updateVolumeWatching(_ showing: Bool) {
+        guard !Self.isDemo else { return }
+        if showing { systemVolume.start() } else { systemVolume.stop() }
+    }
+
+    /// Dragging or clicking the volume bar.
+    func setVolume(_ fraction: Double) {
+        apply(volume.setting(fraction))
+    }
+
+    /// Clicking the speaker next to the volume bar.
+    func toggleMute() {
+        apply(volume.toggledMute())
+    }
+
+    private func apply(_ level: VolumeLevel) {
+        guard level != volume else { return }
+        volume = level
+        DebugTools.log("volume: \(Int((level.volume * 100).rounded()))%\(level.muted ? " muted" : "")")
+        guard !Self.isDemo else { return }
+        systemVolume.set(level)
+    }
 
     func sendMusic(_ command: MusicCommand) {
         let controller = musicController

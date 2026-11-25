@@ -20,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if DebugTools.flag("--edit") { model.beginEditing() }
         if let kind = DebugTools.argument(after: "--editor") { model.openEditorForDebug(kind) }
         if let path = DebugTools.argument(after: "--set-background") { model.useBackground(from: URL(fileURLWithPath: path)) }
+        if DebugTools.flag("--selftest-volume") {
+            Task { await model.runVolumeSelfTest(); NSApp.terminate(nil) }
+        }
         if DebugTools.flag("--selftest-write") {
             Task { await model.runWriteSelfTest(); NSApp.terminate(nil) }
         }

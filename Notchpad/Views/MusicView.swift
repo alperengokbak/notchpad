@@ -15,6 +15,10 @@ struct MusicView: View {
     var appName = "Music"
     /// Medium size: larger artwork, progress and controls under it across the full width.
     var large = false
+    /// The Mac's output volume. Medium: a bar under the song title. Small: a slim upright bar on the right.
+    var volume = VolumeLevel(volume: 0.6, muted: false)
+    var onSetVolume: (Double) -> Void = { _ in }
+    var onToggleMute: () -> Void = {}
 
     private var track: NowPlaying? { if case .playing(let n) = state { n } else { nil } }
 
@@ -23,7 +27,12 @@ struct MusicView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top, spacing: 12) {
                     cover
-                    titles
+                    VStack(alignment: .leading, spacing: 0) {
+                        titles
+                        Spacer(minLength: 6)
+                        VolumeBar(level: volume, vertical: false, onSet: onSetVolume, onToggleMute: onToggleMute)
+                    }
+                    .frame(height: 76)
                 }
                 progress
                 controls.frame(maxWidth: .infinity)
@@ -37,6 +46,8 @@ struct MusicView: View {
                     progress
                     controls
                 }
+                VolumeBar(level: volume, vertical: true, onSet: onSetVolume, onToggleMute: onToggleMute)
+                    .frame(width: 16, height: 64)
             }
         }
     }
@@ -147,5 +158,87 @@ struct ScrubBar: View {
     static func time(_ seconds: TimeInterval) -> String {
         let s = max(0, Int(seconds.rounded(.down)))
         return String(format: "%d:%02d", s / 60, s % 60)
+    }
+}
+
+/// The Mac's output volume: drag or click the bar to set it (the sound changes as you drag),
+/// click the speaker to mute. Upright in the Small Music widget, across in the Medium one.
+struct VolumeBar: View {
+    let level: VolumeLevel
+    let vertical: Bool
+    let onSet: (Double) -> Void
+    let onToggleMute: () -> Void
+
+    @State private var dragFraction: Double?
+
+    var body: some View {
+        Group {
+            if vertical {
+                VStack(spacing: 4) {
+                    bar
+                    speaker
+                }
+            } else {
+                HStack(spacing: 8) {
+                    speaker
+                    bar
+                }
+            }
+        }
+        .disabled(!level.settable)
+        .opacity(level.settable ? 1 : 0.35)
+        .help(level.settable ? "Volume" : "This output can't change volume")
+    }
+
+    private var speaker: some View {
+        Button(action: onToggleMute) {
+            Image(systemName: level.symbolName)
+                .font(.system(size: 11))
+                .foregroundStyle(Color(white: 0.75))
+                .frame(width: 16, height: 14, alignment: vertical ? .center : .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var bar: some View {
+        GeometryReader { geo in
+            let length = vertical ? geo.size.height : geo.size.width
+            let f = min(max(dragFraction ?? level.shownFraction, 0), 1)
+            let dot: CGFloat = dragFraction == nil ? 8 : 10
+            let filled = length * f
+            let dotOffset = min(max(filled - dot / 2, 0), length - dot)
+            ZStack(alignment: vertical ? .bottom : .leading) {
+                Capsule().fill(Color(white: 0.2))
+                    .frame(width: vertical ? 3 : nil, height: vertical ? nil : 3)
+                Capsule().fill(Color(white: 0.85))
+                    .frame(width: vertical ? 3 : filled, height: vertical ? filled : 3)
+                if level.settable {
+                    Circle().fill(Color.white).frame(width: dot, height: dot)
+                        .shadow(color: .black.opacity(0.4), radius: 1.5)
+                        .offset(x: vertical ? 0 : dotOffset, y: vertical ? -dotOffset : 0)
+                }
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        let f = fraction(value.location, geo.size)
+                        dragFraction = f
+                        onSet(f)
+                    }
+                    .onEnded { value in
+                        onSet(fraction(value.location, geo.size))
+                        dragFraction = nil
+                    },
+                including: level.settable ? .all : .none)
+        }
+        .frame(width: vertical ? 16 : nil, height: vertical ? nil : 10)
+    }
+
+    private func fraction(_ point: CGPoint, _ size: CGSize) -> Double {
+        vertical ? VolumeLevel.fraction(y: point.y, height: size.height)
+                 : NowPlaying.seekFraction(x: point.x, width: size.width)
     }
 }

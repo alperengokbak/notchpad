@@ -4,6 +4,7 @@ import NotchpadCore
 
 /// Debug-only helpers: `--editor <kind>` opens the editor at launch (use with `--demo` for screenshots),
 /// `--selftest-write` adds, changes and deletes one reminder and one event of its own, then quits.
+/// `--selftest-volume` turns the real output volume down a little, mutes, unmutes, then puts it back as it was.
 extension AppModel {
     func openEditorForDebug(_ kind: String) {
         switch kind {
@@ -92,5 +93,45 @@ extension AppModel {
         }
         print("selftest: \(ok ? "PASS" : "FAIL")")
         fflush(stdout)
+    }
+}
+
+extension AppModel {
+    /// Round trip against the real output device through the same calls the volume bar uses.
+    /// Always quieter than before, never louder, and the original level and mute come back at the end.
+    func runVolumeSelfTest() async {
+        var ok = true
+        func check(_ name: String, _ pass: Bool) {
+            ok = ok && pass
+            DebugTools.log("selftest-volume: \(pass ? "ok  " : "FAIL") \(name)")
+        }
+        func pause() async { try? await Task.sleep(nanoseconds: 300_000_000) }
+        systemVolume.start()
+        await pause()
+        let original = systemVolume.read()
+        DebugTools.log("selftest-volume: output volume \(Int((original.volume * 100).rounded()))%, muted \(original.muted), settable \(original.settable)")
+        check("listener reported the level", volume == original)
+        guard original.settable else {
+            DebugTools.log("selftest-volume: SKIP (this output has no volume)")
+            systemVolume.stop()
+            return
+        }
+        let target = max(original.volume - 0.1, 0.05)
+        setVolume(target)
+        await pause()
+        let afterSet = systemVolume.read()
+        check("set to \(Int((target * 100).rounded()))%", abs(afterSet.volume - target) < 0.02 && !afterSet.muted)
+        toggleMute()
+        await pause()
+        check("mute", systemVolume.read().muted || systemVolume.read().volume < 0.005)
+        toggleMute()
+        await pause()
+        check("unmute", !systemVolume.read().muted && systemVolume.read().volume > 0.005)
+        systemVolume.set(original)
+        await pause()
+        let restored = systemVolume.read()
+        check("restored", abs(restored.volume - original.volume) < 0.02 && restored.muted == original.muted)
+        systemVolume.stop()
+        DebugTools.log("selftest-volume: \(ok ? "PASS" : "FAIL")")
     }
 }

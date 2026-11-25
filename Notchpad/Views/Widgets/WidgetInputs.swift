@@ -22,6 +22,8 @@ struct WidgetActions {
     var deleteReminder: (String) -> Void = { _ in }
     var deleteEvent: (EventSummary) -> Void = { _ in }
     var seekMusic: (TimeInterval) -> Void = { _ in }
+    var setVolume: (Double) -> Void = { _ in }
+    var toggleMute: () -> Void = {}
     var stepFocus: (Int) -> Void = { _ in }
     var beginFocusTyping: () -> Void = {}
     var endFocusTyping: (String?) -> Void = { _ in }
@@ -51,6 +53,8 @@ struct WidgetInputs {
     var music: MusicState
     /// "Music" or "Spotify", for the "Open …" button.
     var musicAppName: String
+    /// The Mac's output volume (the Music widget's volume bar).
+    var volume = VolumeLevel(volume: 0.6, muted: false)
     var artwork: NSImage?
     var now: Date
     var reminders: [ReminderSummary]
@@ -107,6 +111,8 @@ extension AppModel {
         actions.deleteReminder = { [weak self] in self?.deleteReminder($0) }
         actions.deleteEvent = { [weak self] in self?.deleteEvent($0) }
         actions.seekMusic = { [weak self] in self?.seekMusic(to: $0) }
+        actions.setVolume = { [weak self] in self?.setVolume($0) }
+        actions.toggleMute = { [weak self] in self?.toggleMute() }
         actions.stepFocus = { [weak self] in self?.stepFocus($0) }
         actions.beginFocusTyping = { [weak self] in self?.beginFocusMinutesTyping() }
         actions.endFocusTyping = { [weak self] in self?.endFocusMinutesTyping($0) }
@@ -135,6 +141,7 @@ extension AppModel {
                             tailscaleMessage: tailscaleMessage, copiedDeviceID: copiedDeviceID,
                             shelf: shelf, shelfDropTargeted: dropTargeted, actions: actions)
         inputs.editingFocusMinutes = editingFocusMinutes
+        inputs.volume = volume
         inputs.launcherItems = launcher.items
         inputs.shortcutNames = shortcutNames
         inputs.copiedLauncherID = copiedLauncherID
