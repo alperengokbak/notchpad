@@ -764,6 +764,8 @@ final class AppModel: ObservableObject {
         let result = layout.moveWidget(widgetID, fromTab: selectedTabID, toTab: target)
         DebugTools.log("widget to tab \(layout.tab(target)?.name ?? "?"): \(result)")
         tabFlash = TabFlash(tabID: target, ok: result == .ok, reason: result.reason)
+        // Follow the widget: show the tab it went to (a refused drop stays where it was).
+        if result == .ok { selectTab(target) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
             if self?.tabFlash?.tabID == target { self?.tabFlash = nil }
         }

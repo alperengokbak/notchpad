@@ -72,7 +72,7 @@ Each part of the panel is a widget, and you choose which widgets go on which tab
 
 - remove a widget with its minus button, or change its size with the arrows button (Small, Medium, Wide or Full, depending on the widget)
 - drag a widget to an empty spot, or onto another widget to swap the two
-- drag a widget onto another tab's name to move it to that tab (the tab flashes green; red means that tab already has it or has no room)
+- drag a widget onto another tab's name to move it to that tab; the panel then shows that tab (red means that tab already has the widget or has no room)
 - click "Add widget" to open the gallery, search or pick a category, and click a widget to add it to the tab you're on
 - add a tab with +, click the selected tab to rename it, drag tabs to change their order, or delete a tab with its minus button
 
