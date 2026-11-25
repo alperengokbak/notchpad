@@ -103,6 +103,13 @@ struct NotchRootView: View {
             remove: { model.layout.removeWidget($0, fromTab: tab) },
             canResize: { model.layout.canResize($0, to: $1, inTab: tab) },
             resize: { _ = model.layout.resizeWidget($0, to: $1, inTab: tab) },
-            move: { model.layout.moveWidget($0, toColumn: $1, half: $2, inTab: tab) })
+            move: { model.layout.moveWidget($0, toColumn: $1, half: $2, inTab: tab) },
+            dropOnTab: { model.dropWidget($0, onTabAt: panelPoint($1)) },
+            hoverTab: { model.widgetDragHover(at: $0.map(panelPoint)) })
+    }
+
+    /// The grid sits below the tab strip, inset like the content area.
+    private func panelPoint(_ gridPoint: CGPoint) -> CGPoint {
+        CGPoint(x: gridPoint.x + 22, y: gridPoint.y + model.notchSize.height + 4)
     }
 }

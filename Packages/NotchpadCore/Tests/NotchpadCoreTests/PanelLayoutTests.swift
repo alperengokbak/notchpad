@@ -207,3 +207,28 @@ extension PanelLayout {
         return l
     }
 }
+
+// MARK: Moving a widget to another tab
+
+@Test func moveWidgetToAnotherTabKeepsIdAndSize() {
+    var l = PanelLayout.threeTabs()
+    let home = l.tabs[0].id, tailscaleTab = l.tabs[2].id
+    // Make room on the Tailscale tab: shrink its Full widget away.
+    l.removeWidget(l.tabs[2].widgets[0].id, fromTab: tailscaleTab)
+    let focus = l.tabs[0].widgets.first { $0.kind == .focus }!
+    #expect(l.moveWidget(focus.id, fromTab: home, toTab: tailscaleTab) == .ok)
+    #expect(!l.tabs[0].widgets.contains { $0.id == focus.id })
+    let moved = l.tabs[2].widgets.first { $0.id == focus.id }
+    #expect(moved?.size == .small && moved?.kind == .focus)
+}
+
+@Test func moveWidgetRefusedWhenKindIsThereOrNoRoom() {
+    var l = PanelLayout.threeTabs()
+    let home = l.tabs[0].id, remindersTab = l.tabs[1].id, tailscaleTab = l.tabs[2].id
+    let reminders = l.tabs[0].widgets.first { $0.kind == .reminders }!
+    #expect(l.moveWidget(reminders.id, fromTab: home, toTab: remindersTab) == .alreadyOnTab)
+    let focus = l.tabs[0].widgets.first { $0.kind == .focus }!
+    #expect(l.moveWidget(focus.id, fromTab: home, toTab: tailscaleTab) == .noRoom) // Tailscale Full fills it
+    #expect(l.tabs[0].widgets.contains { $0.id == focus.id })                        // nothing lost
+    #expect(l.moveWidget(focus.id, fromTab: home, toTab: home) == .alreadyOnTab)
+}

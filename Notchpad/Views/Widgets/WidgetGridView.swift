@@ -8,6 +8,10 @@ struct GridEditor {
     let canResize: (UUID, WidgetSize) -> Bool
     let resize: (UUID, WidgetSize) -> Void
     let move: (UUID, Int, SlotHalf) -> Bool
+    /// A point in the grid's coordinates: true when it's over another tab and the drop was handled there.
+    var dropOnTab: (UUID, CGPoint) -> Bool = { _, _ in false }
+    /// While dragging: light up the tab under the pointer (nil = none).
+    var hoverTab: (CGPoint?) -> Void = { _ in }
 }
 
 /// One tab's widgets on the 3-column grid. With an editor: ⊖, size menu, drag to move.
@@ -114,8 +118,16 @@ struct WidgetGridView: View {
             .onChanged { value in
                 draggingID = w.id
                 dragOffset = value.translation
+                editor.hoverTab(value.location)
             }
             .onEnded { value in
+                editor.hoverTab(nil)
+                // Dropped on another tab's name: it moves to that tab (or the tab flashes red).
+                if editor.dropOnTab(w.id, value.location) {
+                    draggingID = nil
+                    dragOffset = .zero
+                    return
+                }
                 defer {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         draggingID = nil

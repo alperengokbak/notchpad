@@ -119,6 +119,19 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         return true
     }
 
+    /// Edit mode: a widget dropped on another tab's name moves there, same size, first free spot.
+    /// Nothing changes unless the move works.
+    public mutating func moveWidget(_ widgetID: UUID, fromTab source: UUID, toTab target: UUID) -> AddCheck {
+        guard source != target else { return .alreadyOnTab }
+        guard let si = index(of: source), let ti = index(of: target),
+              let w = tabs[si].widgets.first(where: { $0.id == widgetID }) else { return .noRoom }
+        if tabs[ti].widgets.contains(where: { $0.kind == w.kind }) { return .alreadyOnTab }
+        guard let spot = WidgetGrid.firstFreeSpot(for: w.size, among: tabs[ti].widgets) else { return .noRoom }
+        tabs[si].widgets.removeAll { $0.id == widgetID }
+        tabs[ti].widgets.append(WidgetPlacement(id: w.id, kind: w.kind, size: w.size, column: spot.column, half: spot.half))
+        return .ok
+    }
+
     public mutating func removeWidget(_ widgetID: UUID, fromTab id: UUID) {
         guard let i = index(of: id) else { return }
         tabs[i].widgets.removeAll { $0.id == widgetID }

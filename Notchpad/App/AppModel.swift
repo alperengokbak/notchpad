@@ -741,6 +741,35 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Moving a widget to another tab (edit mode)
+
+    /// The tab a dragged widget is over, and the result of the last drop on a tab.
+    @Published private(set) var widgetDragHoverTab: UUID?
+    struct TabFlash: Equatable { let tabID: UUID; let ok: Bool; let reason: String? }
+    @Published private(set) var tabFlash: TabFlash?
+
+    private func tab(atPanelPoint p: CGPoint) -> UUID? {
+        let frames = TabStrip.pillFrames(tabs: layout.tabs, panelWidth: NotchGeometry.openSize.width, notchSize: notchSize)
+        return frames.first { $0.value.insetBy(dx: -3, dy: -3).contains(p) }?.key
+    }
+
+    func widgetDragHover(at p: CGPoint?) {
+        let over = p.flatMap(tab(atPanelPoint:)).flatMap { $0 == selectedTabID ? nil : $0 }
+        if over != widgetDragHoverTab { widgetDragHoverTab = over }
+    }
+
+    /// True when the drop was on another tab (moved there, or refused with a red flash).
+    func dropWidget(_ widgetID: UUID, onTabAt p: CGPoint) -> Bool {
+        guard let target = tab(atPanelPoint: p), target != selectedTabID else { return false }
+        let result = layout.moveWidget(widgetID, fromTab: selectedTabID, toTab: target)
+        DebugTools.log("widget to tab \(layout.tab(target)?.name ?? "?"): \(result)")
+        tabFlash = TabFlash(tabID: target, ok: result == .ok, reason: result.reason)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { [weak self] in
+            if self?.tabFlash?.tabID == target { self?.tabFlash = nil }
+        }
+        return true
+    }
+
     // MARK: Clipboard, recent files, updates
 
     /// The clipboard is watched only while a Clipboard widget is on one of his tabs; never in demo runs.

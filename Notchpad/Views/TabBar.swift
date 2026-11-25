@@ -71,6 +71,24 @@ struct TabStrip: View {
 
     // MARK: Layout
 
+    /// Where each tab's pill sits in the panel (edit mode, nothing being renamed). Used to find the tab
+    /// a dragged widget is dropped on.
+    static func pillFrames(tabs: [TabPage], panelWidth: CGFloat, notchSize: CGSize) -> [UUID: CGRect] {
+        let controls = textWidth("Add widget") + 24 + spacing + textWidth("Done") + 24
+        let widths = tabs.map { textWidth($0.name) + 20 }
+        let placed = TabStripLayout.place(widths: widths, leftStart: edge,
+                                          leftEnd: panelWidth / 2 - notchSize.width / 2 - notchGap,
+                                          rightStart: panelWidth / 2 + notchSize.width / 2 + notchGap,
+                                          rightEnd: panelWidth - edge - controls - spacing, plusWidth: 22,
+                                          plusIsOptional: tabs.count >= PanelLayout.maxTabs, spacing: spacing)
+        var frames: [UUID: CGRect] = [:]
+        for (i, tab) in tabs.enumerated() where i < placed.mids.count {
+            let w = placed.widths[i]
+            frames[tab.id] = CGRect(x: placed.mids[i] - w / 2, y: 0, width: w, height: notchSize.height)
+        }
+        return frames
+    }
+
     private struct Slots {
         var tabs: [(midX: CGFloat, width: CGFloat)]
         var plus: CGFloat?
@@ -140,6 +158,11 @@ struct TabStrip: View {
             }
         }
         .overlay(Capsule().strokeBorder(Color.red, lineWidth: rejectedID == tab.id ? 2 : 0))
+        // A widget being dragged over this tab, and the result of dropping one on it.
+        .overlay(Capsule().strokeBorder(Color.white, lineWidth: model.widgetDragHoverTab == tab.id ? 2 : 0))
+        .overlay(Capsule().strokeBorder(model.tabFlash?.ok == true ? Color.green : Color.red,
+                                        lineWidth: model.tabFlash?.tabID == tab.id ? 2 : 0))
+        .help(model.tabFlash?.tabID == tab.id ? (model.tabFlash?.reason ?? "") : "")
         .overlay(alignment: .topLeading) {
             // Also on the tab being renamed, so a tab just added with + can be deleted straight away.
             if editing, tabs.count > 1, !deleting {
