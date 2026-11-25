@@ -137,6 +137,23 @@ private let external = ScreenInfo(frame: CGRect(x: 1728, y: 0, width: 2560, heig
     #expect(NotchGeometry.pickScreen([laptop, monitor], chosen: nil, preferMain: false)?.index == 0)
 }
 
+@Test func followMouseUsesTheScreenUnderThePointer() {
+    var monitor = external; monitor.key = "4c2d-7148-1"; monitor.menuBarHeight = 24
+    let screens = [mbp, monitor]
+    let onMonitor = NotchGeometry.pickScreen(screens, chosen: NotchGeometry.followMouse, preferMain: false,
+                                             pointer: CGPoint(x: 2000, y: 700))
+    #expect(onMonitor?.index == 1)
+    #expect(onMonitor?.isVirtual == true)
+    let onMacBook = NotchGeometry.pickScreen(screens, chosen: NotchGeometry.followMouse, preferMain: false,
+                                             pointer: CGPoint(x: 500, y: 500))
+    #expect(onMacBook?.index == 0)
+    #expect(onMacBook?.isVirtual == false)
+    // Pointer unknown or off every screen: the usual choice (the notch).
+    #expect(NotchGeometry.pickScreen(screens, chosen: NotchGeometry.followMouse, preferMain: false)?.index == 0)
+    #expect(NotchGeometry.pickScreen(screens, chosen: NotchGeometry.followMouse, preferMain: false,
+                                     pointer: CGPoint(x: -5000, y: 0))?.index == 0)
+}
+
 @Test func screenMenuTitles() {
     var monitor = external; monitor.name = "Studio Display 27"
     #expect(mbp.menuTitle == "MacBook notch")

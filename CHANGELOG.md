@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1
+
+- **External monitors.** The settings menu has a new "Show on" list. "Screen with the mouse" makes Notchpad follow the pointer between the MacBook notch and your monitor, or you can keep it on one screen. The old "Show on the main display" switch only worked when the monitor was set as the main display in System Settings, so it often did nothing.
+- **New launch video** showing the volume bar, the right-click menus and a second tab of widgets.
+
 ## 1.6
 
 - **Volume bar.** The Music widget has a volume bar for the Mac's own sound, so it works with any app that plays audio. Drag it and the sound changes as you drag. Click the speaker to mute. In the Medium size it sits under the song title, and in the Small size it stands upright on the right.

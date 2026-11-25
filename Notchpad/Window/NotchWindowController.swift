@@ -22,6 +22,9 @@ final class NotchWindowController {
     var onOpen: (() -> Void)?
     var onClose: (() -> Void)?
 
+    /// The screen the panel is on now (index in NSScreen.screens).
+    private var screenIndex: Int?
+
     init(model: AppModel, forceOpen: Bool) {
         self.model = model
         machine.forceOpen = forceOpen
@@ -86,9 +89,19 @@ final class NotchWindowController {
     private static func displayMenuItem(model: AppModel) -> NSMenuItem? {
         let screens = screenInfos()
         guard screens.count > 1 else { return nil }
-        let current = NotchGeometry.pickScreen(screens, chosen: model.displayChoice, preferMain: model.preferMainDisplay)?.index
+        let following = model.displayChoice == NotchGeometry.followMouse
+        let current = following ? nil
+            : NotchGeometry.pickScreen(screens, chosen: model.displayChoice, preferMain: model.preferMainDisplay)?.index
         let item = NSMenuItem(title: "Show on", action: nil, keyEquivalent: "")
         let sub = NSMenu()
+        let follow = ClosureMenuItem("Screen with the mouse") { [weak model] in
+            model?.preferMainDisplay = false
+            model?.displayChoice = NotchGeometry.followMouse
+            DebugTools.log("show on: screen with the mouse")
+        }
+        follow.state = following ? .on : .off
+        sub.addItem(follow)
+        sub.addItem(.separator())
         for (i, screen) in screens.enumerated() {
             let choice = ClosureMenuItem(screen.menuTitle) { [weak model] in
                 guard let model else { return }
@@ -105,13 +118,15 @@ final class NotchWindowController {
 
     /// The real notch on a notched MacBook; otherwise (or with "Show on the main display") a drawn notch
     /// at the top centre of the main screen.
-    func layout() {
-        guard let pick = NotchGeometry.pickScreen(Self.screenInfos(), chosen: model.displayChoice, preferMain: model.preferMainDisplay),
+    func layout(pointer: CGPoint? = nil) {
+        guard let pick = NotchGeometry.pickScreen(Self.screenInfos(), chosen: model.displayChoice,
+                                                  preferMain: model.preferMainDisplay, pointer: pointer ?? NSEvent.mouseLocation),
               NSScreen.screens.indices.contains(pick.index) else {
             panel?.orderOut(nil)
             return
         }
         let screen = NSScreen.screens[pick.index]
+        screenIndex = pick.index
         let notchRect = pick.notch
         DebugTools.log("screen: \(pick.isVirtual ? "virtual" : "real") notch \(Int(notchRect.width))x\(Int(notchRect.height))")
         notch = notchRect
@@ -269,6 +284,11 @@ final class NotchWindowController {
     var contentView: NSView? { panel?.contentView }
 
     private func mouseMoved(to point: CGPoint) {
+        // "Screen with the mouse": move to the screen the pointer just entered (never while the panel is open).
+        if model.displayChoice == NotchGeometry.followMouse, !machine.isOpen,
+           let i = NSScreen.screens.firstIndex(where: { $0.frame.contains(point) }), i != screenIndex {
+            layout(pointer: point)
+        }
         let zone = machine.isOpen ? openRect
             : NotchGeometry.hotZone(notch: notch, wings: model.closedWings)
         machine.pointer(inside: zone.contains(point), now: ProcessInfo.processInfo.systemUptime)

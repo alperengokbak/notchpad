@@ -20,7 +20,7 @@ Update later with `brew upgrade --cask notchpad`. The first time you open it, do
 
 Or download the zip:
 
-1. Download **Notchpad-1.6.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.6.1.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
@@ -29,6 +29,11 @@ Notchpad has no Dock icon and no menu bar icon. Move the mouse onto the notch to
 When you install a newer version, macOS may ask for the permissions again (Calendar, Reminders, Music). That's because the download isn't signed with a paid Apple developer certificate.
 
 If you'd rather build it yourself, see [Build](#build).
+
+## What's new in 1.6.1
+
+- **External monitors.** The settings menu has a new "Show on" list. "Screen with the mouse" makes Notchpad follow the pointer between the MacBook notch and your monitor, or you can keep it on one screen. The old "Show on the main display" switch only worked when the monitor was set as the main display in System Settings, so it often did nothing.
+- **New launch video** showing the volume bar, the right-click menus and a second tab of widgets.
 
 ## What's new in 1.6
 
@@ -108,7 +113,7 @@ A short message at the bottom of the panel confirms things like "Added to Study"
 
 The same menu has switches for: **swiping on the notch to change songs** (two fingers left for the next song, right for the previous one, with the pointer over the notch, open or closed), **showing charging on the closed notch** (a green bolt and your battery level for a few seconds when you plug in the charger), **showing the newest shelf files first**, **opening the panel when you drag files to the notch**, and **adding new screenshots to the shelf** (off at first; when it's on, every screenshot you take waits on the shelf, ready to drag into an email or a document).
 
-**External monitor:** with a monitor connected, the menu has "Show on", which lists your screens by name. Pick the monitor and Notchpad draws a small notch at the top centre of it. Move the mouse there to open the panel. If you unplug the monitor, Notchpad goes back to the MacBook notch, and it moves to the monitor again when you plug it back in.
+**External monitor:** with a monitor connected, the menu has "Show on". Pick "Screen with the mouse" and Notchpad follows the pointer: the real notch on the MacBook, and a small drawn notch at the top centre of the monitor when you work there. Or pick one screen by name to keep it there. If you unplug the monitor, Notchpad goes back to the MacBook notch, and it moves to the monitor again when you plug it back in.
 
 **Background image:** pick any picture (JPEG, PNG, HEIC…) with "Choose background image…". It fills the open panel, cropped evenly to its wide shape (never stretched), and is darkened so the text stays readable. It never covers or blocks a button, and the closed notch stays black. Notchpad keeps its own smaller copy, so you can move or delete the original. "Remove background image" goes back to plain black.
 

@@ -19,8 +19,8 @@ targets:
       path: Notchpad/Info.plist
       properties:
         CFBundleDisplayName: Notchpad
-        CFBundleShortVersionString: "1.6.0"
-        CFBundleVersion: "12"
+        CFBundleShortVersionString: "1.6.1"
+        CFBundleVersion: "13"
         LSUIElement: true
         LSMinimumSystemVersion: "14.0"
         NSAppleEventsUsageDescription: Notchpad shows and controls the song playing in Apple Music or Spotify, and saves your Quick note to Apple Notes when you ask it to.

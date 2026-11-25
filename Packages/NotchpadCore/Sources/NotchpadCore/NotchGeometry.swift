@@ -110,15 +110,27 @@ extension NotchGeometry {
 
     /// The real notch on a notched built-in screen, unless he asked for the main display (or there's no
     /// notch at all): then a virtual notch on the main screen.
-    /// `chosen`: the key of the screen picked in "Show on". Used while that screen is connected;
+    /// "Show on ▸ Screen with the mouse": Notchpad moves to whichever screen the pointer is on.
+    public static let followMouse = "follow-mouse"
+
+    /// `chosen`: the key of the screen picked in "Show on" (or `followMouse`). Used while that screen is connected;
     /// otherwise the usual choice below (so unplugging the monitor brings Notchpad back to the notch).
-    public static func pickScreen(_ screens: [ScreenInfo], chosen: String?, preferMain: Bool) -> ScreenPick? {
+    /// `pointer`: the mouse, in the same coordinates as the screen frames (needed for `followMouse`).
+    public static func pickScreen(_ screens: [ScreenInfo], chosen: String?, preferMain: Bool, pointer: CGPoint? = nil) -> ScreenPick? {
+        if chosen == followMouse, let pointer, let i = screens.firstIndex(where: { $0.frame.contains(pointer) }) {
+            return pick(screens, i)
+        }
         if let chosen, !chosen.isEmpty, let i = screens.firstIndex(where: { $0.key == chosen }) {
-            let s = screens[i]
-            if s.hasNotch, let rect = notchRect(s.metrics) { return ScreenPick(index: i, notch: rect, isVirtual: false) }
-            return ScreenPick(index: i, notch: virtualNotchRect(screen: s.frame, menuBarHeight: s.menuBarHeight), isVirtual: true)
+            return pick(screens, i)
         }
         return pickScreen(screens, preferMain: preferMain)
+    }
+
+    /// The real notch on the notched MacBook screen, a drawn one anywhere else.
+    private static func pick(_ screens: [ScreenInfo], _ i: Int) -> ScreenPick {
+        let s = screens[i]
+        if s.hasNotch, let rect = notchRect(s.metrics) { return ScreenPick(index: i, notch: rect, isVirtual: false) }
+        return ScreenPick(index: i, notch: virtualNotchRect(screen: s.frame, menuBarHeight: s.menuBarHeight), isVirtual: true)
     }
 
     public static func pickScreen(_ screens: [ScreenInfo], preferMain: Bool) -> ScreenPick? {
