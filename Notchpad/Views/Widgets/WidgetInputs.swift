@@ -34,6 +34,8 @@ struct WidgetActions {
     var refreshShortcutNames: () -> Void = {}
     var dropOnLauncherFolder: (LauncherItem, [URL]) -> Void = { _, _ in }
     var showLauncherAddMenu: () -> Void = {}
+    var moveLauncherItem: (UUID, UUID) -> Void = { _, _ in }
+    var openRecentFile: (RecentFile) -> Void = { _ in }
 
     static let none = WidgetActions()
 }
@@ -65,6 +67,8 @@ struct WidgetInputs {
     var camera: CameraMirror = DemoData.previewCamera
     var mirrorDemoImage: NSImage?
     var shelfNewestFirst = false
+    var clipboard: ClipboardMonitor = DemoData.previewClipboard
+    var recentFiles: [RecentFile] = []
     var tailscale: TailscaleStatus?
     var tailscaleBusy: Bool
     var tailscaleMessage: String?
@@ -106,6 +110,8 @@ extension AppModel {
         actions.refreshShortcutNames = { [weak self] in self?.refreshShortcutNames() }
         actions.dropOnLauncherFolder = { [weak self] in self?.dropOnLauncherFolder($0, $1) }
         actions.showLauncherAddMenu = { [weak self] in self?.showLauncherAddMenu() }
+        actions.moveLauncherItem = { [weak self] in self?.moveLauncherItem($0, onto: $1) }
+        actions.openRecentFile = { [weak self] in self?.openRecentFile($0) }
         var inputs = WidgetInputs(music: music, musicAppName: musicSource.appName, artwork: artwork, now: clock,
                             reminders: reminders, remindersAccess: remindersAccess,
                             pendingReminderIDs: pendingReminderIDs,
@@ -121,6 +127,8 @@ extension AppModel {
         inputs.camera = camera
         inputs.mirrorDemoImage = Self.isDemo ? DemoData.mirrorImage() : nil
         inputs.shelfNewestFirst = shelfNewestFirst
+        inputs.clipboard = clipboard
+        inputs.recentFiles = recentFiles
         return inputs
     }
 }

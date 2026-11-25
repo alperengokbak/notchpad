@@ -108,6 +108,37 @@ enum DemoData {
         }
     }
 
+    /// Clipboard previews: made-up copies.
+    static let previewClipboard: ClipboardMonitor = {
+        let m = ClipboardMonitor(storageURL: FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-preview/clipboard.json"), saves: false)
+        m.setForDemo(clips(now: Date()))
+        return m
+    }()
+
+    static func clips(now: Date) -> [ClipEntry] {
+        let picture = cover().tiffRepresentation.flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) }
+        return [
+            ClipEntry(text: "Meeting moved to room B12 at 3 pm", date: now.addingTimeInterval(-40)),
+            ClipEntry(text: "https://github.com/alperengokbak/notchpad", date: now.addingTimeInterval(-8 * 60)),
+            ClipEntry(imageData: picture, date: now.addingTimeInterval(-50 * 60)),
+            ClipEntry(text: "Order number 48213", date: now.addingTimeInterval(-3 * 3600)),
+            ClipEntry(text: "ssh lab-server.local", date: now.addingTimeInterval(-26 * 3600)),
+        ]
+    }
+
+    /// Recent files previews: empty made-up files in the demo folder.
+    static func recentFiles(now: Date) -> [RecentFile] {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let names: [(String, TimeInterval)] = [("Lab report.docx", 5 * 60), ("Network diagram.png", 2 * 3600),
+                                               ("Budget.xlsx", 26 * 3600), ("Lecture notes.pdf", 3 * 86400)]
+        return names.map { name, ago in
+            let url = dir.appendingPathComponent(name)
+            if !FileManager.default.fileExists(atPath: url.path) { FileManager.default.createFile(atPath: url.path, contents: Data("demo".utf8)) }
+            return RecentFile(url: url, date: now.addingTimeInterval(-ago))
+        }
+    }
+
     static let tailscale = TailscaleStatus(state: .connected, devices: [
         TailscaleDevice(id: "d1", name: "macbook", ipv4: "100.64.0.1", isOnline: true, isSelf: true),
         TailscaleDevice(id: "d2", name: "iphone", ipv4: "100.64.0.2", isOnline: true, isSelf: false),
@@ -143,6 +174,7 @@ enum DemoData {
                      shelf: previewShelf, shelfDropTargeted: false, actions: .none)
         inputs.launcherItems = launcherItems()
         inputs.mirrorDemoImage = mirrorImage()
+        inputs.recentFiles = recentFiles(now: now)
         return inputs
     }
 }

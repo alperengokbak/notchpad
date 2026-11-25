@@ -27,7 +27,8 @@ struct LauncherView: View {
                                      copied: inputs.copiedLauncherID == item.id,
                                      onOpen: { inputs.actions.launch(item) },
                                      onRemove: { inputs.actions.removeLauncherItem(item.id) },
-                                     onDrop: { inputs.actions.dropOnLauncherFolder(item, $0) })
+                                     onDrop: { inputs.actions.dropOnLauncherFolder(item, $0) },
+                                     onReorder: { inputs.actions.moveLauncherItem($0, item.id) })
                     }
                     // Always the last spot: where the next icon will go.
                     LauncherAddTile(showTitle: !compact) { inputs.actions.showLauncherAddMenu() }
@@ -50,6 +51,8 @@ struct LauncherTile: View {
     let onOpen: () -> Void
     let onRemove: () -> Void
     let onDrop: ([URL]) -> Void
+    /// Another icon (its id) was dropped on this one: it takes this one's place.
+    var onReorder: (UUID) -> Void = { _ in }
 
     @State private var hovering = false
     @State private var dropTargeted = false
@@ -89,7 +92,8 @@ struct LauncherTile: View {
             }
         }
         .onHover { hovering = $0 }
-        .modifier(FolderDrop(enabled: item.kind == .folder, targeted: $dropTargeted, onDrop: onDrop))
+        .onDrag { NSItemProvider(object: (LauncherTile.dragPrefix + item.id.uuidString) as NSString) }
+        .modifier(TileDrop(isFolder: item.kind == .folder, targeted: $dropTargeted, onFiles: onDrop, onReorder: onReorder))
     }
 
     private var helpText: String {
@@ -99,17 +103,22 @@ struct LauncherTile: View {
         case .folder: "Open \(item.title) in Finder. Drop files here to copy them in."
         }
     }
+
+    /// What a dragged icon carries, so drops can tell an icon from ordinary text.
+    static let dragPrefix = "notchpad-launcher:"
 }
 
-/// Only folder icons take drops; everything else lets the drop fall through to the shelf.
-private struct FolderDrop: ViewModifier {
-    let enabled: Bool
+/// Every icon takes another dragged icon (reorder). Folder icons also take files (copied in);
+/// files dropped on other icons fall through to the shelf.
+private struct TileDrop: ViewModifier {
+    let isFolder: Bool
     @Binding var targeted: Bool
-    let onDrop: ([URL]) -> Void
+    let onFiles: ([URL]) -> Void
+    let onReorder: (UUID) -> Void
 
     func body(content: Content) -> some View {
-        if enabled {
-            content.onDrop(of: [.fileURL], isTargeted: $targeted) { providers in
+        content.onDrop(of: isFolder ? [.fileURL, .plainText] : [.plainText], isTargeted: $targeted) { providers in
+            if isFolder, providers.contains(where: { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }) {
                 let group = DispatchGroup()
                 let box = URLBox()
                 for provider in providers {
@@ -119,11 +128,16 @@ private struct FolderDrop: ViewModifier {
                         group.leave()
                     }
                 }
-                group.notify(queue: .main) { onDrop(box.urls) }
+                group.notify(queue: .main) { onFiles(box.urls) }
                 return true
             }
-        } else {
-            content
+            guard let provider = providers.first(where: { $0.canLoadObject(ofClass: NSString.self) }) else { return false }
+            _ = provider.loadObject(ofClass: NSString.self) { value, _ in
+                guard let text = value as? String, text.hasPrefix(LauncherTile.dragPrefix),
+                      let id = UUID(uuidString: String(text.dropFirst(LauncherTile.dragPrefix.count))) else { return }
+                DispatchQueue.main.async { onReorder(id) }
+            }
+            return true
         }
     }
 }

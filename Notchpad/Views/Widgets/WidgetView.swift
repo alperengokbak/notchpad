@@ -50,6 +50,10 @@ struct WidgetView: View {
             LauncherView(inputs: inputs, size: size)
         case (.mirror, _):
             MirrorView(camera: inputs.camera, demoImage: inputs.mirrorDemoImage)
+        case (.clipboard, _):
+            ClipboardView(monitor: inputs.clipboard, now: inputs.now)
+        case (.recentFiles, _):
+            RecentFilesView(files: inputs.recentFiles, now: inputs.now, onOpen: a.openRecentFile)
         }
     }
 }

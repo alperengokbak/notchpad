@@ -115,3 +115,11 @@ import Testing
     let spotify = NowPlaying(title: "Song", artist: "Band", duration: 200, position: 55, isPlaying: false, positionDate: t0)
     #expect(spotify.carryingPosition(from: playing, now: t0.addingTimeInterval(10)).position == 55)
 }
+
+@Test func newWidgetsInCatalog() {
+    #expect(WidgetKind.clipboard.title == "Clipboard")
+    #expect(WidgetKind.clipboard.sizes == [.medium, .wide, .full])
+    #expect(WidgetKind.recentFiles.title == "Recent files")
+    #expect(WidgetKind.recentFiles.dataSources == [.recentFiles])
+    #expect(WidgetKind.clipboard.category == .productivity && WidgetKind.recentFiles.category == .productivity)
+}

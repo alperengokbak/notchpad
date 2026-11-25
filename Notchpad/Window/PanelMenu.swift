@@ -41,7 +41,7 @@ enum PanelMenu {
         menu.addItem(music)
         for t in toggles {
             let item = ClosureMenuItem(t.title, t.action)
-            item.state = t.isOn ? .on : .off
+            item.state = t.isOn == true ? .on : .off
             menu.addItem(item)
         }
         menu.addItem(.separator())
@@ -108,13 +108,14 @@ final class MenuTarget: NSObject {
     }
 
     @objc func toggleLogin() {
-        try? LoginItem.setEnabled(!LoginItem.isEnabled)
+        LoginItem.toggleWithFeedback()
     }
 }
 
 /// An on/off item in the settings menu.
 struct MenuToggle {
     let title: String
-    let isOn: Bool
+    /// nil = a plain item without a checkmark.
+    let isOn: Bool?
     let action: () -> Void
 }

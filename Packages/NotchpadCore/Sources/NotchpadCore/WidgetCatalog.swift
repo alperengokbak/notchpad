@@ -2,7 +2,7 @@ import Foundation
 
 /// Where a widget's data comes from. A source only runs while a widget needing it is on screen.
 public enum DataSource: Sendable {
-    case music, reminders, calendar, tailscale
+    case music, reminders, calendar, tailscale, recentFiles
 }
 
 public enum WidgetCategory: String, CaseIterable, Sendable {
@@ -42,7 +42,7 @@ public enum WidgetSize: String, Codable, CaseIterable, Sendable {
 
 /// Every widget Notchpad can show.
 public enum WidgetKind: String, Codable, CaseIterable, Sendable {
-    case music, shelf, reminders, nextEvent, focus, tailscale, launcher, mirror
+    case music, shelf, reminders, nextEvent, focus, tailscale, launcher, mirror, clipboard, recentFiles
 
     public var title: String {
         switch self {
@@ -54,6 +54,8 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .tailscale: "Tailscale"
         case .launcher: "Shortcuts"
         case .mirror: "Mirror"
+        case .clipboard: "Clipboard"
+        case .recentFiles: "Recent files"
         }
     }
 
@@ -68,13 +70,15 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .tailscale: "network"
         case .launcher: "square.grid.2x2.fill"
         case .mirror: "person.crop.square"
+        case .clipboard: "doc.on.clipboard"
+        case .recentFiles: "clock.arrow.circlepath"
         }
     }
 
     public var category: WidgetCategory {
         switch self {
         case .music, .shelf, .mirror: .media
-        case .reminders, .nextEvent, .focus, .launcher: .productivity
+        case .reminders, .nextEvent, .focus, .launcher, .clipboard, .recentFiles: .productivity
         case .tailscale: .network
         }
     }
@@ -90,6 +94,8 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .tailscale: [.medium, .full]
         case .launcher: [.small, .medium, .wide]
         case .mirror: [.small, .medium, .wide]
+        case .clipboard: [.medium, .wide, .full]
+        case .recentFiles: [.medium, .wide, .full]
         }
     }
 
@@ -99,7 +105,9 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .reminders: [.reminders]
         case .nextEvent: [.calendar]
         case .tailscale: [.tailscale]
-        case .shelf, .focus, .launcher, .mirror: []
+        case .recentFiles: [.recentFiles]
+        // The clipboard watcher runs whenever the widget is on any tab (copies happen while the panel is closed).
+        case .shelf, .focus, .launcher, .mirror, .clipboard: []
         }
     }
 }

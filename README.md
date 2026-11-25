@@ -53,8 +53,10 @@ If you'd rather build it yourself, see [Build](#build).
 - **Music on the closed notch:** while a song plays in Apple Music or Spotify, its cover sits left of the closed notch and four small bars move on the right. Pause the song and both disappear. Hover either side to open the panel. If you don't want it, open the settings menu (the gear, or right-click) and untick "Show music on closed notch". Notchpad then fetches nothing extra while the panel is closed.
 - **Focus timer:** pick a length with − and + (5 to 180 minutes, in 5-minute steps), or click the number and type one (for example 40, 1:30 or 1h15), then click Start. Notchpad remembers the length you used last. When you close the panel, the countdown stays visible on a small black strip left of the notch (red dot for focus, green for a break). When the time is up you hear a sound and get a notification, then you can start a 5 minute break or go again.
 - **Tailscale:** your Tailscale status, a Connect/Disconnect button and your devices. Click a device to copy its Tailscale IP. It uses the command line tool inside the Tailscale app, so it only works if Tailscale is installed. If the Tailscale app isn't running when you click Connect, Notchpad starts it first. It checks every 5 seconds, and only while the Tailscale widget is on screen.
-- **Shortcuts:** one-click icons for the apps, shortcuts and folders you use most. Click the Add tile (always right after the last icon) and choose App…, Shortcut (any shortcut you made in the Shortcuts app) or Folder…. The folder picker opens in CloudStorage, where Google Drive for desktop keeps "My Drive". Click an icon to open the app, run the shortcut, or open the folder in Finder. Drop files on a folder icon to copy them into it; the originals stay where they were. Hover an icon to remove it. Bigger sizes show the icons' names.
+- **Shortcuts:** one-click icons for the apps, shortcuts and folders you use most. Click the Add tile (always right after the last icon) and choose App…, Shortcut (any shortcut you made in the Shortcuts app) or Folder…. The folder picker opens in CloudStorage, where Google Drive for desktop keeps "My Drive". Click an icon to open the app, run the shortcut, or open the folder in Finder. Drop files on a folder icon to copy them into it; the originals stay where they were. Hover an icon to remove it, or drag it onto another icon to change the order. Bigger sizes show the icons' names.
 - **Mirror:** your camera as a mirror, to check how you look before a call. The camera only turns on when you click the widget, and it turns off when you click again, close the panel or switch tabs.
+- **Clipboard:** the last 30 things you copied (text, links and pictures). Click one to copy it again, hover it to remove it, or click Clear. Notchpad only watches the clipboard while this widget is on one of your tabs, and it skips anything a password manager marks as secret. Text is kept on your Mac between restarts; pictures only until you quit Notchpad.
+- **Recent files:** the files you opened in the last week, newest first, found with Spotlight. Click one to open it, drag it out into another app, or hover it and click the magnifying glass to show it in Finder.
 
 ## Tabs and widgets
 
@@ -75,6 +77,8 @@ Each part of the panel is a widget, and you choose which widgets go on which tab
 | Tailscale | Medium, Full |
 | Shortcuts | Small, Medium, Wide |
 | Mirror | Small, Medium, Wide |
+| Clipboard | Medium, Wide, Full |
+| Recent files | Medium, Wide, Full |
 
 Small is half a column, Medium is one column, Wide is two columns and Full is the whole tab.
 
@@ -119,6 +123,9 @@ Notchpad then asks for these permissions, each once:
 - **Reminders:** to show your reminders, tick them off, and add, change or delete them when you ask it to.
 - **Automation for Music or Spotify:** to show the current song and to use the play, next and previous buttons and the progress bar. macOS asks once for each app.
 - **Notifications:** for the "Focus done" message. The sound plays either way.
+- **Camera:** only when you click the Mirror widget.
+
+**Internet:** once a day Notchpad asks GitHub whether a newer version exists (it sends nothing about you). If there is one, the gear gets a blue dot and the settings menu shows "Update available". Turn this off with "Check for updates automatically" in the settings menu; "Check for updates…" still works by hand. Nothing else goes online.
 
 If you say no to Calendar, the Next section says "Calendar off". If you say no to Reminders, the panel says "Reminders access is off" with a button that opens the right page in System Settings.
 

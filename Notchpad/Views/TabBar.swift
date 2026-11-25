@@ -55,6 +55,12 @@ struct TabStrip: View {
             } else {
                 // Settings: the same menu as a right-click, for people who don't think of right-clicking.
                 circleButton("gearshape.fill") { model.onShowMenu?() }
+                    .overlay(alignment: .topTrailing) {
+                        if model.updateAvailable != nil {
+                            Circle().fill(Color.blue).frame(width: 7, height: 7).offset(x: 1, y: -1)
+                        }
+                    }
+                    .help(model.updateAvailable.map { "Settings. Notchpad \($0.version) is available" } ?? "Settings")
                     .position(x: panelWidth - Self.edge - Self.gearSize / 2, y: notchSize.height / 2)
                     .help("Settings")
             }

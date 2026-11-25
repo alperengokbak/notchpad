@@ -31,6 +31,7 @@ final class AppModel: ObservableObject {
             layoutStore.save(layout)
             if layout.selectedTabID != oldValue.selectedTabID { DebugTools.log("tab: \(layout.selectedTab.name)") }
             updateDataSources()
+            updateClipboardWatching()
         }
     }
     private let layoutStore: LayoutStore
@@ -185,6 +186,23 @@ final class AppModel: ObservableObject {
     private let powerMonitor = PowerMonitor()
     private var lastPower: PowerState?
 
+    /// Clipboard widget: watches the clipboard only while the widget is on one of his tabs.
+    let clipboard = ClipboardMonitor(
+        storageURL: AppModel.isDemo
+            ? FileManager.default.temporaryDirectory.appendingPathComponent("notchpad-demo/clipboard.json")
+            : FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Notchpad/clipboard.json"),
+        saves: !AppModel.isDemo)
+    /// Recent files widget (read from Spotlight while the widget is on screen).
+    @Published private(set) var recentFiles: [RecentFile] = []
+    private let recentFilesReader = RecentFilesReader()
+    /// A newer release on GitHub (the gear gets a dot, the menu says "Update available").
+    struct AvailableUpdate: Equatable { let version: String; let url: URL }
+    @Published private(set) var updateAvailable: AvailableUpdate?
+    @Published var checkForUpdates = true {
+        didSet { if !Self.isDemo { preferences.checkForUpdates = checkForUpdates } }
+    }
+
     /// Shown in the editor when EventKit refused a change.
     @Published var editorError: String?
     private var focusTicker: Timer?
@@ -274,6 +292,11 @@ final class AppModel: ObservableObject {
         shelfNewestFirst = preferences.shelfNewestFirst
         openOnFileDrag = preferences.openOnFileDrag
         showChargingAnimation = preferences.showChargingAnimation
+        checkForUpdates = preferences.checkForUpdates
+        updateClipboardWatching()
+        if !Self.isDemo && checkForUpdates && UpdateCheck.isDue(lastCheck: preferences.lastUpdateCheck, now: Date()) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in self?.runUpdateCheck(manual: false) }
+        }
         powerMonitor.onChange = { [weak self] state in self?.powerChanged(state) }
         lastPower = PowerMonitor.read()
         if showChargingAnimation && !Self.isDemo { powerMonitor.start() }
@@ -307,7 +330,10 @@ final class AppModel: ObservableObject {
         shelf.refresh()
         clock = Date()
         every(1) { $0.clock = Date() }
-        every(60) { if $0.neededSources.contains(.calendar) { $0.refreshEvents() } }
+        every(60) {
+            if $0.neededSources.contains(.calendar) { $0.refreshEvents() }
+            if $0.neededSources.contains(.recentFiles) { $0.refreshRecentFiles() }
+        }
         updateDataSources()
     }
 
@@ -348,6 +374,7 @@ final class AppModel: ObservableObject {
             }
         }
         if newlyNeeded.contains(.music) { refreshMusic() }
+        if newlyNeeded.contains(.recentFiles) { refreshRecentFiles() }
         updateTailscaleRefresh()
     }
 
@@ -530,7 +557,10 @@ final class AppModel: ObservableObject {
                     if track?.isPlaying == true { self.playingSources.insert(source) } else { self.playingSources.remove(source) }
                     self.followPlayer()
                     guard source == self.musicSource else { return }
-                    if let track { self.music = .playing(track) } else { self.music = self.isMusicRunning ? .idle : .notRunning }
+                    // Same song paused or resumed: keep its position (Apple Music sends none, the bar would jump to 0).
+                    let previous: NowPlaying? = { if case .playing(let n) = self.music { return n }; return nil }()
+                    if let track { self.music = .playing(track.carryingPosition(from: previous, now: Date())) }
+                    else { self.music = self.isMusicRunning ? .idle : .notRunning }
                     // New song: drop the old cover so neither the panel nor the closed notch shows a stale one.
                     if let track, self.coverCache.songChanged(to: track.title) { self.artwork = nil }
                     let closedNeedsCover = self.showClosedMusic && !self.isOpen && self.music.isPlaying
@@ -709,6 +739,58 @@ final class AppModel: ObservableObject {
             DebugTools.log("reminder completed")
             self.refreshReminders()
         }
+    }
+
+    // MARK: Clipboard, recent files, updates
+
+    /// The clipboard is watched only while a Clipboard widget is on one of his tabs; never in demo runs.
+    func updateClipboardWatching() {
+        let allowed = !Self.isDemo || CommandLine.arguments.contains("--watch-clipboard") // tests only, never saved
+        let wanted = allowed && layout.tabs.contains { $0.widgets.contains { $0.kind == .clipboard } }
+        if wanted { clipboard.start() } else if clipboard.isRunning { clipboard.stop() }
+    }
+
+    private func refreshRecentFiles() {
+        guard !Self.isDemo else { return }
+        recentFilesReader.fetch { [weak self] files in self?.recentFiles = files }
+    }
+
+    func openRecentFile(_ file: RecentFile) {
+        DebugTools.log("open recent: \(file.url.lastPathComponent)")
+        guard !Self.isDemo else { return }
+        NSWorkspace.shared.open(file.url)
+    }
+
+    /// Automatic (once a day, silent) or from the menu (always tells him the result).
+    func runUpdateCheck(manual: Bool) {
+        UpdateChecker.check { [weak self] newer, reached in
+            guard let self else { return }
+            if reached { self.preferences.lastUpdateCheck = Date() }
+            self.updateAvailable = newer.map { AvailableUpdate(version: $0.version, url: $0.url) }
+            DebugTools.log("update check: reached=\(reached) newer=\(newer?.version ?? "none")")
+            guard manual else { return }
+            if let newer {
+                NSWorkspace.shared.open(newer.url)
+            } else {
+                let alert = NSAlert()
+                alert.messageText = reached ? "Notchpad is up to date" : "Couldn't check for updates"
+                alert.informativeText = reached ? "You have version \(UpdateChecker.currentVersion), the latest one."
+                    : "Notchpad couldn't reach GitHub. Check your internet connection and try again."
+                NSApp.activate(ignoringOtherApps: true)
+                alert.runModal()
+            }
+        }
+    }
+
+    func openUpdatePage() {
+        if let url = updateAvailable?.url { NSWorkspace.shared.open(url) }
+    }
+
+    /// Drag one Shortcuts icon onto another: it takes that icon's place.
+    func moveLauncherItem(_ id: UUID, onto target: UUID) {
+        guard id != target, let index = launcher.items.firstIndex(where: { $0.id == target }) else { return }
+        launcher.move(id, to: index)
+        DebugTools.log("launcher moved to \(index)")
     }
 
     // MARK: Swipe and charging
@@ -1051,6 +1133,11 @@ extension AppModel {
         }
         focus = CommandLine.arguments.contains("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
         launcher.setForDemo(DemoData.launcherItems())
+        if !CommandLine.arguments.contains("--watch-clipboard") { clipboard.setForDemo(DemoData.clips(now: now)) }
+        if CommandLine.arguments.contains("--demo-update") {
+            updateAvailable = AvailableUpdate(version: "1.4.0", url: URL(string: "https://github.com/alperengokbak/notchpad/releases")!)
+        }
+        recentFiles = DemoData.recentFiles(now: now)
         // Launch video frames: `--demo-song-position <seconds>` puts the made-up song there.
         if let p = DebugTools.argument(after: "--demo-song-position").flatMap(Double.init), case .playing(var song) = music {
             song.position = p

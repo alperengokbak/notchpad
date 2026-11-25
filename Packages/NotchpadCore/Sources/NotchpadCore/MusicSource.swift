@@ -57,6 +57,8 @@ public struct Preferences {
     private static let shelfNewestKey = "shelfNewestFirst"
     private static let fileDragKey = "openOnFileDrag"
     private static let chargingKey = "showChargingAnimation"
+    private static let updatesKey = "checkForUpdates"
+    private static let lastCheckKey = "lastUpdateCheck"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -102,6 +104,17 @@ public struct Preferences {
     public var showChargingAnimation: Bool {
         get { defaults.object(forKey: Self.chargingKey) as? Bool ?? true }
         nonmutating set { defaults.set(newValue, forKey: Self.chargingKey) }
+    }
+
+    /// Ask GitHub once a day whether a newer Notchpad exists. On unless turned off.
+    public var checkForUpdates: Bool {
+        get { defaults.object(forKey: Self.updatesKey) as? Bool ?? true }
+        nonmutating set { defaults.set(newValue, forKey: Self.updatesKey) }
+    }
+
+    public var lastUpdateCheck: Date? {
+        get { defaults.object(forKey: Self.lastCheckKey) as? Date }
+        nonmutating set { defaults.set(newValue, forKey: Self.lastCheckKey) }
     }
 
     /// The player the Music widget showed last, so its "Open" button opens the right app.
