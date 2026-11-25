@@ -8,6 +8,11 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
+## What's new in 1.5.1
+
+- **Adding widgets when a tab is full.** Clicking a widget in the gallery while the tab has no room now puts it on a new tab, and the gallery tells you. Before, nothing happened.
+- **Reset tabs and widgets.** A new item in the settings menu takes you back to the single Home tab of a first launch. Your shelf, notes and settings stay.
+
 ## What's new in 1.5
 
 - **Works without a notch.** On a Mac without a notch, Notchpad draws a small black notch in the middle of the menu bar and opens from there. With an external monitor as your main screen, switch on "Show on the main display" to use it there.
@@ -54,7 +59,7 @@ Each of the last three has an on/off switch in the settings menu (the gear, or r
 
 ## Download
 
-1. Download **Notchpad-1.5.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.5.1.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
