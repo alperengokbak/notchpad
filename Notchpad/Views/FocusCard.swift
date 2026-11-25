@@ -38,6 +38,7 @@ struct FocusCard: View {
                     Spacer(minLength: 4)
                     pill("Start") { actions.startFocusFromWidget(inputs.editingFocusMinutes ? typed : nil) }
                 }
+                history
             case .running(let kind, _), .paused(let kind, _):
                 label(kind == .focus ? "FOCUS" : "BREAK", dot: kind == .focus ? .red : .green)
                 Text(FocusTimer.clock(focus.remaining(now: inputs.now) ?? 0))
@@ -57,6 +58,7 @@ struct FocusCard: View {
                     if kind == .focus { pill("5 min break") { actions.startFocus(.rest, 5) } }
                     pill("Again") { actions.startFocus(.focus, inputs.lastFocusMinutes) }
                 }
+                history
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,6 +89,14 @@ struct FocusCard: View {
         .onAppear {
             typed = "\(inputs.focusMinutes)"
             DispatchQueue.main.async { boxFocused = true }
+        }
+    }
+
+    /// "Today 50 min · Week 3 h 20 min" under the controls.
+    @ViewBuilder private var history: some View {
+        if let text = inputs.focusHistory {
+            Text(text).font(.system(size: 10)).foregroundStyle(Color(white: 0.5)).lineLimit(1)
+                .help("Minutes focused today and this week")
         }
     }
 

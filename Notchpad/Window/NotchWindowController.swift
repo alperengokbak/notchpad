@@ -92,6 +92,7 @@ final class NotchWindowController {
                     MenuToggle(title: "Show charging on closed notch", isOn: model.showChargingAnimation) { model.showChargingAnimation.toggle() },
                     MenuToggle(title: "Shelf: newest files first", isOn: model.shelfNewestFirst) { model.shelfNewestFirst.toggle() },
                     MenuToggle(title: "Open when dragging files to the notch", isOn: model.openOnFileDrag) { model.openOnFileDrag.toggle() },
+                    MenuToggle(title: "Add new screenshots to the shelf", isOn: model.screenshotsToShelf) { model.screenshotsToShelf.toggle() },
                     model.updateAvailable.map { u in MenuToggle(title: "Update available: Notchpad \(u.version)…", isOn: nil) { model.openUpdatePage() } }
                         ?? MenuToggle(title: "Check for updates…", isOn: nil) { model.runUpdateCheck(manual: true) },
                     MenuToggle(title: "Check for updates automatically", isOn: model.checkForUpdates) { model.checkForUpdates.toggle() },

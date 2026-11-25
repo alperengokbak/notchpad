@@ -203,6 +203,23 @@ final class AppModel: ObservableObject {
         didSet { if !Self.isDemo { preferences.checkForUpdates = checkForUpdates } }
     }
 
+    /// World clock cities (time zone IDs).
+    @Published var worldClockZones: [String] = [] {
+        didSet { if !Self.isDemo && worldClockZones != oldValue { preferences.worldClockZones = worldClockZones } }
+    }
+    /// New screenshots go to the shelf (settings-menu switch, off by default).
+    @Published var screenshotsToShelf = false {
+        didSet {
+            guard screenshotsToShelf != oldValue else { return }
+            if !Self.isDemo { preferences.screenshotsToShelf = screenshotsToShelf }
+            if screenshotsToShelf && !Self.isDemo { screenshotWatcher.start() } else { screenshotWatcher.stop() }
+        }
+    }
+    private let screenshotWatcher = ScreenshotWatcher()
+    /// Focus minutes per day (Focus widget: "Today … · Week …").
+    @Published private(set) var focusLog = FocusLog()
+    private var focusPlannedSeconds: TimeInterval = 0
+
     /// Shown in the editor when EventKit refused a change.
     @Published var editorError: String?
     private var focusTicker: Timer?
@@ -294,6 +311,12 @@ final class AppModel: ObservableObject {
         showChargingAnimation = preferences.showChargingAnimation
         checkForUpdates = preferences.checkForUpdates
         updateClipboardWatching()
+        if !Self.isDemo {
+            worldClockZones = preferences.worldClockZones
+            focusLog = preferences.focusLog
+            screenshotWatcher.onNew = { [weak self] urls in self?.shelf.add(urls) }
+            screenshotsToShelf = preferences.screenshotsToShelf
+        }
         if !Self.isDemo && checkForUpdates && UpdateCheck.isDue(lastCheck: preferences.lastUpdateCheck, now: Date()) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in self?.runUpdateCheck(manual: false) }
         }
@@ -320,6 +343,7 @@ final class AppModel: ObservableObject {
         if CommandLine.arguments.contains("--mic-demo") { mic.update(isRunning: true, now: Date().addingTimeInterval(-252)) }
         if let s = DebugTools.argument(after: "--focus-seconds").flatMap(Double.init) {
             focus.start(.focus, seconds: s, now: Date())
+            focusPlannedSeconds = s
             askForNotificationsOnce()
             updateFocusTicker()
         }
@@ -659,7 +683,7 @@ final class AppModel: ObservableObject {
     }
 
     func startFocus(_ kind: FocusKind, minutes: Int) {
-        if kind == .focus { lastFocusMinutes = minutes }
+        if kind == .focus { lastFocusMinutes = minutes; focusPlannedSeconds = TimeInterval(minutes * 60) }
         DebugTools.log("focus start: \(minutes)")
         focus.start(kind, minutes: minutes, now: Date())
         clock = Date()
@@ -673,6 +697,10 @@ final class AppModel: ObservableObject {
     }
 
     func stopFocus() {
+        // Stopped early: the minutes actually focused still count.
+        if focus.kind == .focus, focus.isActive, let left = focus.remaining(now: Date()) {
+            recordFocus(FocusTimer.focusedMinutes(planned: focusPlannedSeconds, remaining: left))
+        }
         focus.stop()
         updateFocusTicker()
     }
@@ -697,6 +725,7 @@ final class AppModel: ObservableObject {
         clock = Date()
         DebugTools.log("focus tick")
         if focus.tick(now: Date()), let kind = focus.kind {
+            if kind == .focus { recordFocus(Int(focusPlannedSeconds / 60)) }
             updateFocusTicker()
             FocusAlert.fire(kind)
         }
@@ -740,6 +769,50 @@ final class AppModel: ObservableObject {
             self.refreshReminders()
         }
     }
+
+    // MARK: Focus history and world clock
+
+    private func recordFocus(_ minutes: Int) {
+        focusLog.record(minutes: minutes, at: Date(), calendar: .current)
+        if !Self.isDemo { preferences.focusLog = focusLog }
+        DebugTools.log("focus recorded: \(minutes) min, today \(focusLog.minutesToday(now: Date(), calendar: .current))")
+    }
+
+    /// "Today 50 min · Week 3 h 20 min".
+    var focusHistoryText: String {
+        let now = Date()
+        return "Today \(FocusLog.text(focusLog.minutesToday(now: now, calendar: .current)))"
+            + " · Week \(FocusLog.text(focusLog.minutesThisWeek(now: now, calendar: .current)))"
+    }
+
+    var clockRows: [ClockRow] {
+        worldClockZones.compactMap { WorldClock.row(zoneID: $0, now: clock, local: .current) }
+    }
+
+    /// "+" on the World clock: every city by region; ones already shown have a tick.
+    func showClockAddMenu() {
+        let menu = NSMenu()
+        for group in WorldClock.zonesByRegion() {
+            let regionItem = NSMenuItem(title: group.region, action: nil, keyEquivalent: "")
+            let sub = NSMenu()
+            for zone in group.zones {
+                let item = ClosureMenuItem(WorldClock.cityName(zone)) { [weak self] in self?.toggleClockZone(zone) }
+                item.state = worldClockZones.contains(zone) ? .on : .off
+                sub.addItem(item)
+            }
+            regionItem.submenu = sub
+            menu.addItem(regionItem)
+        }
+        DebugTools.log("clock menu")
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+    }
+
+    func toggleClockZone(_ zone: String) {
+        if let i = worldClockZones.firstIndex(of: zone) { worldClockZones.remove(at: i) } else { worldClockZones.append(zone) }
+        DebugTools.log("clock zones: \(worldClockZones.count)")
+    }
+
+    func removeClockZone(_ zone: String) { worldClockZones.removeAll { $0 == zone } }
 
     // MARK: Moving a widget to another tab (edit mode)
 
@@ -1165,6 +1238,12 @@ extension AppModel {
         focus = CommandLine.arguments.contains("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
         launcher.setForDemo(DemoData.launcherItems())
         if !CommandLine.arguments.contains("--watch-clipboard") { clipboard.setForDemo(DemoData.clips(now: now)) }
+        worldClockZones = ["Europe/London", "Europe/Istanbul", "America/New_York", "Asia/Tokyo"]
+        focusLog = DemoData.focusLog(now: now)
+        if CommandLine.arguments.contains("--watch-screenshots") { // tests only: the demo shelf is a temp one
+            screenshotWatcher.onNew = { [weak self] urls in self?.shelf.add(urls) }
+            screenshotWatcher.start()
+        }
         if CommandLine.arguments.contains("--demo-update") {
             updateAvailable = AvailableUpdate(version: "1.4.0", url: URL(string: "https://github.com/alperengokbak/notchpad/releases")!)
         }

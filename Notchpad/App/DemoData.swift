@@ -139,6 +139,19 @@ enum DemoData {
         }
     }
 
+    /// Focus history previews: 50 min today, 3 h 20 min this week.
+    static func focusLog(now: Date) -> FocusLog {
+        var log = FocusLog()
+        let cal = Calendar.current
+        log.record(minutes: 50, at: now, calendar: cal)
+        if let start = cal.dateInterval(of: .weekOfYear, for: now)?.start, !cal.isDate(start, inSameDayAs: now) {
+            log.record(minutes: 150, at: start.addingTimeInterval(10 * 3600), calendar: cal)
+        } else {
+            log.record(minutes: 150, at: now, calendar: cal)
+        }
+        return log
+    }
+
     static let tailscale = TailscaleStatus(state: .connected, devices: [
         TailscaleDevice(id: "d1", name: "macbook", ipv4: "100.64.0.1", isOnline: true, isSelf: true),
         TailscaleDevice(id: "d2", name: "iphone", ipv4: "100.64.0.2", isOnline: true, isSelf: false),
@@ -175,6 +188,9 @@ enum DemoData {
         inputs.launcherItems = launcherItems()
         inputs.mirrorDemoImage = mirrorImage()
         inputs.recentFiles = recentFiles(now: now)
+        inputs.clockRows = ["Europe/London", "Europe/Istanbul", "America/New_York", "Asia/Tokyo"]
+            .compactMap { WorldClock.row(zoneID: $0, now: now, local: .current) }
+        inputs.focusHistory = "Today 50 min · Week 3 h 20 min"
         return inputs
     }
 }

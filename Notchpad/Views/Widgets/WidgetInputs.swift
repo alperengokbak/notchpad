@@ -36,6 +36,8 @@ struct WidgetActions {
     var showLauncherAddMenu: () -> Void = {}
     var moveLauncherItem: (UUID, UUID) -> Void = { _, _ in }
     var openRecentFile: (RecentFile) -> Void = { _ in }
+    var addClockCity: () -> Void = {}
+    var removeClockCity: (String) -> Void = { _ in }
 
     static let none = WidgetActions()
 }
@@ -69,6 +71,8 @@ struct WidgetInputs {
     var shelfNewestFirst = false
     var clipboard: ClipboardMonitor = DemoData.previewClipboard
     var recentFiles: [RecentFile] = []
+    var clockRows: [ClockRow] = []
+    var focusHistory: String?
     var tailscale: TailscaleStatus?
     var tailscaleBusy: Bool
     var tailscaleMessage: String?
@@ -112,6 +116,8 @@ extension AppModel {
         actions.showLauncherAddMenu = { [weak self] in self?.showLauncherAddMenu() }
         actions.moveLauncherItem = { [weak self] in self?.moveLauncherItem($0, onto: $1) }
         actions.openRecentFile = { [weak self] in self?.openRecentFile($0) }
+        actions.addClockCity = { [weak self] in self?.showClockAddMenu() }
+        actions.removeClockCity = { [weak self] in self?.removeClockZone($0) }
         var inputs = WidgetInputs(music: music, musicAppName: musicSource.appName, artwork: artwork, now: clock,
                             reminders: reminders, remindersAccess: remindersAccess,
                             pendingReminderIDs: pendingReminderIDs,
@@ -129,6 +135,8 @@ extension AppModel {
         inputs.shelfNewestFirst = shelfNewestFirst
         inputs.clipboard = clipboard
         inputs.recentFiles = recentFiles
+        inputs.clockRows = clockRows
+        inputs.focusHistory = focusHistoryText
         return inputs
     }
 }
