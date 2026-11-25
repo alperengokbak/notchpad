@@ -59,6 +59,9 @@ public struct Preferences {
     private static let chargingKey = "showChargingAnimation"
     private static let updatesKey = "checkForUpdates"
     private static let lastCheckKey = "lastUpdateCheck"
+    private static let clockZonesKey = "worldClockZones"
+    private static let screenshotsKey = "screenshotsToShelf"
+    private static let focusLogKey = "focusLog"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -115,6 +118,23 @@ public struct Preferences {
     public var lastUpdateCheck: Date? {
         get { defaults.object(forKey: Self.lastCheckKey) as? Date }
         nonmutating set { defaults.set(newValue, forKey: Self.lastCheckKey) }
+    }
+
+    /// World clock cities (time zone IDs). Starts with this Mac's own time zone.
+    public var worldClockZones: [String] {
+        get { defaults.stringArray(forKey: Self.clockZonesKey) ?? [TimeZone.current.identifier] }
+        nonmutating set { defaults.set(newValue, forKey: Self.clockZonesKey) }
+    }
+
+    /// New screenshots go to the shelf. Off unless turned on.
+    public var screenshotsToShelf: Bool {
+        get { defaults.object(forKey: Self.screenshotsKey) as? Bool ?? false }
+        nonmutating set { defaults.set(newValue, forKey: Self.screenshotsKey) }
+    }
+
+    public var focusLog: FocusLog {
+        get { defaults.dictionary(forKey: Self.focusLogKey).map { FocusLog(days: $0.compactMapValues { $0 as? Int }) } ?? FocusLog() }
+        nonmutating set { defaults.set(newValue.days, forKey: Self.focusLogKey) }
     }
 
     /// The player the Music widget showed last, so its "Open" button opens the right app.

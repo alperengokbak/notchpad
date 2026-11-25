@@ -42,7 +42,7 @@ public enum WidgetSize: String, Codable, CaseIterable, Sendable {
 
 /// Every widget Notchpad can show.
 public enum WidgetKind: String, Codable, CaseIterable, Sendable {
-    case music, shelf, reminders, nextEvent, focus, tailscale, launcher, mirror, clipboard, recentFiles
+    case music, shelf, reminders, nextEvent, focus, tailscale, launcher, mirror, clipboard, recentFiles, worldClock
 
     public var title: String {
         switch self {
@@ -56,6 +56,7 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .mirror: "Mirror"
         case .clipboard: "Clipboard"
         case .recentFiles: "Recent files"
+        case .worldClock: "World clock"
         }
     }
 
@@ -72,13 +73,14 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .mirror: "person.crop.square"
         case .clipboard: "doc.on.clipboard"
         case .recentFiles: "clock.arrow.circlepath"
+        case .worldClock: "globe"
         }
     }
 
     public var category: WidgetCategory {
         switch self {
         case .music, .shelf, .mirror: .media
-        case .reminders, .nextEvent, .focus, .launcher, .clipboard, .recentFiles: .productivity
+        case .reminders, .nextEvent, .focus, .launcher, .clipboard, .recentFiles, .worldClock: .productivity
         case .tailscale: .network
         }
     }
@@ -96,6 +98,7 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .mirror: [.small, .medium, .wide]
         case .clipboard: [.medium, .wide, .full]
         case .recentFiles: [.medium, .wide, .full]
+        case .worldClock: [.small, .medium, .wide]
         }
     }
 
@@ -107,7 +110,7 @@ public enum WidgetKind: String, Codable, CaseIterable, Sendable {
         case .tailscale: [.tailscale]
         case .recentFiles: [.recentFiles]
         // The clipboard watcher runs whenever the widget is on any tab (copies happen while the panel is closed).
-        case .shelf, .focus, .launcher, .mirror, .clipboard: []
+        case .shelf, .focus, .launcher, .mirror, .clipboard, .worldClock: []
         }
     }
 }
