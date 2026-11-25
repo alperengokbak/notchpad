@@ -1,12 +1,20 @@
 # Notchpad
 
-Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto the notch and it opens with the song playing in Apple Music or Spotify, a shelf for files, your reminders, your next event and a focus timer. Move the mouse away and it goes back to being a normal black notch.
+Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto the notch and it opens with the song playing in Apple Music or Spotify, a shelf for files, your reminders, your next event and a focus timer. Move the mouse away and it goes back to being a normal black notch. On a Mac without a notch it draws a small black one in the middle of the menu bar.
 
 ![Notchpad open under the notch](docs/screenshot.png)
 
 ![Notchpad launch video](docs/notchpad-launch.gif)
 
 The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
+
+## What's new in 1.5
+
+- **Works without a notch.** On a Mac without a notch, Notchpad draws a small black notch in the middle of the menu bar and opens from there. With an external monitor as your main screen, switch on "Show on the main display" to use it there.
+- **World clock widget.** The time in the cities you choose, with how far ahead or behind they are and "Tomorrow" when it's already past midnight there.
+- **Quick note widget.** Click it and type a short note. It's saved as you type and stays until you clear it.
+- **Screenshots to the shelf.** Switch on "Add new screenshots to the shelf" and every screenshot you take waits there, ready to drag into an email or a document.
+- **Focus history.** The Focus widget shows how many minutes you focused today and this week.
 
 ## What's new in 1.4.1
 
@@ -46,7 +54,7 @@ Each of the last three has an on/off switch in the settings menu (the gear, or r
 
 ## Download
 
-1. Download **Notchpad-1.4.1.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.5.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
@@ -70,6 +78,7 @@ If you'd rather build it yourself, see [Build](#build).
 - **Clipboard:** the last 30 things you copied (text, links and pictures). Click one to copy it again, hover it to remove it, or click Clear. Notchpad only watches the clipboard while this widget is on one of your tabs, and it skips anything a password manager marks as secret. Text is kept on your Mac between restarts; pictures only until you quit Notchpad.
 - **Recent files:** the files you opened in the last week, newest first, found with Spotlight. Click one to open it, drag it out into another app, or hover it and click the magnifying glass to show it in Finder.
 - **World clock:** the time in the cities you choose, with how far ahead or behind they are (+3 h) and "Tomorrow" when it's already past midnight there. It starts with your own city; click + to add more from a menu grouped by region, and hover a city to remove it.
+- **Quick note:** click it and type a short note, like a phone number or an idea in a lecture. Click elsewhere, press Esc or click Done to finish. It's saved as you type and stays until you click Clear.
 
 ## Tabs and widgets
 
@@ -94,6 +103,7 @@ Each part of the panel is a widget, and you choose which widgets go on which tab
 | Clipboard | Medium, Wide, Full |
 | Recent files | Medium, Wide, Full |
 | World clock | Small, Medium, Wide |
+| Quick note | Small, Medium, Wide |
 
 Small is half a column, Medium is one column, Wide is two columns and Full is the whole tab.
 
@@ -103,13 +113,13 @@ When there's no more room left of the notch, the next tabs go to the right of it
 
 Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Choose background image…", "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
 
-The same menu has switches for: **swiping on the notch to change songs** (two fingers left for the next song, right for the previous one, with the pointer over the notch, open or closed), **showing charging on the closed notch** (a green bolt and your battery level for a few seconds when you plug in the charger), **showing the newest shelf files first**, **opening the panel when you drag files to the notch**, and **adding new screenshots to the shelf** (off at first; when it's on, every screenshot you take waits on the shelf, ready to drag into an email or a document).
+The same menu has switches for: **swiping on the notch to change songs** (two fingers left for the next song, right for the previous one, with the pointer over the notch, open or closed), **showing charging on the closed notch** (a green bolt and your battery level for a few seconds when you plug in the charger), **showing the newest shelf files first**, **opening the panel when you drag files to the notch**, **adding new screenshots to the shelf** (off at first; when it's on, every screenshot you take waits on the shelf, ready to drag into an email or a document), and **showing Notchpad on the main display** (for an external monitor; on a MacBook it otherwise stays in the notch).
 
 **Background image:** pick any picture (JPEG, PNG, HEIC…) with "Choose background image…". It fills the open panel, cropped evenly to its wide shape (never stretched), and is darkened so the text stays readable. It never covers or blocks a button, and the closed notch stays black. Notchpad keeps its own smaller copy, so you can move or delete the original. "Remove background image" goes back to plain black.
 
 ## Requirements
 
-- A MacBook with a notch (2021 MacBook Pro or newer, 2022 MacBook Air or newer)
+- Any Mac. On a MacBook with a notch it lives in the notch; on other Macs and external monitors it draws its own small notch at the top of the screen
 - macOS 14 or later
 - Apple Music or Spotify, for the music part
 

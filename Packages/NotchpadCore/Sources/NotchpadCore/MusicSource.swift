@@ -62,6 +62,8 @@ public struct Preferences {
     private static let clockZonesKey = "worldClockZones"
     private static let screenshotsKey = "screenshotsToShelf"
     private static let focusLogKey = "focusLog"
+    private static let quickNoteKey = "quickNote"
+    private static let mainDisplayKey = "preferMainDisplay"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -135,6 +137,18 @@ public struct Preferences {
     public var focusLog: FocusLog {
         get { defaults.dictionary(forKey: Self.focusLogKey).map { FocusLog(days: $0.compactMapValues { $0 as? Int }) } ?? FocusLog() }
         nonmutating set { defaults.set(newValue.days, forKey: Self.focusLogKey) }
+    }
+
+    /// The Quick note widget's text.
+    public var quickNote: String {
+        get { defaults.string(forKey: Self.quickNoteKey) ?? "" }
+        nonmutating set { defaults.set(newValue, forKey: Self.quickNoteKey) }
+    }
+
+    /// Put Notchpad on the main display (an external monitor) instead of the MacBook's notch. Off unless turned on.
+    public var preferMainDisplay: Bool {
+        get { defaults.object(forKey: Self.mainDisplayKey) as? Bool ?? false }
+        nonmutating set { defaults.set(newValue, forKey: Self.mainDisplayKey) }
     }
 
     /// The player the Music widget showed last, so its "Open" button opens the right app.

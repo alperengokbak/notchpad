@@ -52,6 +52,8 @@ struct WidgetView: View {
             MirrorView(camera: inputs.camera, demoImage: inputs.mirrorDemoImage)
         case (.clipboard, _):
             ClipboardView(monitor: inputs.clipboard, now: inputs.now)
+        case (.quickNote, _):
+            QuickNoteView(inputs: inputs)
         case (.worldClock, _):
             WorldClockView(rows: inputs.clockRows, size: size, onAdd: a.addClockCity, onRemove: a.removeClockCity)
         case (.recentFiles, _):

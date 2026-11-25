@@ -38,6 +38,9 @@ struct WidgetActions {
     var openRecentFile: (RecentFile) -> Void = { _ in }
     var addClockCity: () -> Void = {}
     var removeClockCity: (String) -> Void = { _ in }
+    var setQuickNote: (String) -> Void = { _ in }
+    var beginNote: () -> Void = {}
+    var endNote: () -> Void = {}
 
     static let none = WidgetActions()
 }
@@ -73,6 +76,8 @@ struct WidgetInputs {
     var recentFiles: [RecentFile] = []
     var clockRows: [ClockRow] = []
     var focusHistory: String?
+    var quickNote = ""
+    var editingNote = false
     var tailscale: TailscaleStatus?
     var tailscaleBusy: Bool
     var tailscaleMessage: String?
@@ -118,6 +123,9 @@ extension AppModel {
         actions.openRecentFile = { [weak self] in self?.openRecentFile($0) }
         actions.addClockCity = { [weak self] in self?.showClockAddMenu() }
         actions.removeClockCity = { [weak self] in self?.removeClockZone($0) }
+        actions.setQuickNote = { [weak self] in self?.quickNote = $0 }
+        actions.beginNote = { [weak self] in self?.beginNoteEditing() }
+        actions.endNote = { [weak self] in self?.endNoteEditing() }
         var inputs = WidgetInputs(music: music, musicAppName: musicSource.appName, artwork: artwork, now: clock,
                             reminders: reminders, remindersAccess: remindersAccess,
                             pendingReminderIDs: pendingReminderIDs,
@@ -137,6 +145,8 @@ extension AppModel {
         inputs.recentFiles = recentFiles
         inputs.clockRows = clockRows
         inputs.focusHistory = focusHistoryText
+        inputs.quickNote = quickNote
+        inputs.editingNote = editingNote
         return inputs
     }
 }

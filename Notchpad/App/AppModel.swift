@@ -128,7 +128,7 @@ final class AppModel: ObservableObject {
         didSet { typingMaybeChanged() }
     }
     /// Something in the panel takes typing: the editor or the focus length box.
-    var wantsTyping: Bool { editor != nil || editingFocusMinutes }
+    var wantsTyping: Bool { editor != nil || editingFocusMinutes || editingNote }
     private var lastWantsTyping = false
     private func typingMaybeChanged() {
         guard wantsTyping != lastWantsTyping else { return }
@@ -219,6 +219,18 @@ final class AppModel: ObservableObject {
     /// Focus minutes per day (Focus widget: "Today … · Week …").
     @Published private(set) var focusLog = FocusLog()
     private var focusPlannedSeconds: TimeInterval = 0
+
+    /// Quick note widget: the text (saved as he types) and whether it's being edited.
+    @Published var quickNote = "" {
+        didSet { if !Self.isDemo && quickNote != oldValue { preferences.quickNote = quickNote } }
+    }
+    @Published private(set) var editingNote = false {
+        didSet { typingMaybeChanged() }
+    }
+    /// Notchpad on the main display instead of the MacBook's notch (settings switch).
+    @Published var preferMainDisplay = false {
+        didSet { if !Self.isDemo && preferMainDisplay != oldValue { preferences.preferMainDisplay = preferMainDisplay } }
+    }
 
     /// Shown in the editor when EventKit refused a change.
     @Published var editorError: String?
@@ -311,7 +323,9 @@ final class AppModel: ObservableObject {
         showChargingAnimation = preferences.showChargingAnimation
         checkForUpdates = preferences.checkForUpdates
         updateClipboardWatching()
+        preferMainDisplay = preferences.preferMainDisplay
         if !Self.isDemo {
+            quickNote = preferences.quickNote
             worldClockZones = preferences.worldClockZones
             focusLog = preferences.focusLog
             screenshotWatcher.onNew = { [weak self] urls in self?.shelf.add(urls) }
@@ -768,6 +782,20 @@ final class AppModel: ObservableObject {
             DebugTools.log("reminder completed")
             self.refreshReminders()
         }
+    }
+
+    // MARK: Quick note
+
+    func beginNoteEditing() {
+        guard !isEditing, editor == nil, !editingNote else { return }
+        editingNote = true
+        DebugTools.log("note: editing")
+    }
+
+    func endNoteEditing() {
+        guard editingNote else { return }
+        editingNote = false
+        DebugTools.log("note: done (\(quickNote.count) characters)")
     }
 
     // MARK: Focus history and world clock
@@ -1240,6 +1268,7 @@ extension AppModel {
         if !CommandLine.arguments.contains("--watch-clipboard") { clipboard.setForDemo(DemoData.clips(now: now)) }
         worldClockZones = ["Europe/London", "Europe/Istanbul", "America/New_York", "Asia/Tokyo"]
         focusLog = DemoData.focusLog(now: now)
+        quickNote = DemoData.note
         if CommandLine.arguments.contains("--watch-screenshots") { // tests only: the demo shelf is a temp one
             screenshotWatcher.onNew = { [weak self] urls in self?.shelf.add(urls) }
             screenshotWatcher.start()

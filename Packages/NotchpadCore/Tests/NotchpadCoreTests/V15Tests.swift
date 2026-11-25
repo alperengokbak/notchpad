@@ -84,3 +84,55 @@ private func utc(_ y: Int, _ m: Int, _ d: Int, _ h: Int, _ min: Int = 0) -> Date
     #expect(log.days.count == 1)                                          // August entry dropped (over 60 days)
     #expect(FocusTimer.focusedMinutes(planned: 25 * 60, remaining: 10 * 60 + 20) == 14)
 }
+
+// MARK: Screens without a notch
+
+private let mbp = ScreenInfo(frame: CGRect(x: 0, y: 0, width: 1728, height: 1117), isBuiltIn: true, isMain: true,
+                             metrics: ScreenMetrics(frame: CGRect(x: 0, y: 0, width: 1728, height: 1117),
+                                                    leftAuxWidth: 771.5, rightAuxWidth: 771.5, safeTop: 32),
+                             menuBarHeight: 32)
+private let external = ScreenInfo(frame: CGRect(x: 1728, y: 0, width: 2560, height: 1440), isBuiltIn: false, isMain: false,
+                                  metrics: ScreenMetrics(frame: CGRect(x: 1728, y: 0, width: 2560, height: 1440),
+                                                         leftAuxWidth: nil, rightAuxWidth: nil, safeTop: 0),
+                                  menuBarHeight: 25)
+
+@Test func notchedMacBookKeepsTheRealNotch() {
+    let pick = NotchGeometry.pickScreen([mbp, external], preferMain: false)
+    #expect(pick?.index == 0)
+    #expect(pick?.notch == CGRect(x: 771.5, y: 1085, width: 185, height: 32))
+    #expect(pick?.isVirtual == false)
+}
+
+@Test func externalMainDisplayGetsAVirtualNotchWhenAsked() {
+    var main = external; main.isMain = true
+    var laptop = mbp; laptop.isMain = false
+    let pick = NotchGeometry.pickScreen([laptop, main], preferMain: true)
+    #expect(pick?.index == 1)
+    #expect(pick?.isVirtual == true)
+    #expect(pick?.notch == CGRect(x: 1728 + 2560 / 2 - 92.5, y: 1440 - 25, width: 185, height: 25))
+    // Without the switch, the built-in notch still wins.
+    #expect(NotchGeometry.pickScreen([laptop, main], preferMain: false)?.index == 0)
+}
+
+@Test func macWithoutNotchUsesTheMainScreen() {
+    var imac = external; imac.isMain = true; imac.menuBarHeight = 20
+    let pick = NotchGeometry.pickScreen([imac], preferMain: false)
+    #expect(pick?.isVirtual == true)
+    #expect(pick?.notch.height == 24) // never thinner than 24 pt, so it's easy to hit
+    #expect(NotchGeometry.pickScreen([], preferMain: false) == nil)
+}
+
+// MARK: Quick note
+
+@Test func quickNotePreferenceAndCatalog() {
+    let suite = "notchpad-tests-\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suite)!
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let prefs = Preferences(defaults: defaults)
+    #expect(prefs.quickNote == "")
+    #expect(!prefs.preferMainDisplay)
+    prefs.quickNote = "Call the dentist 023 9200 0000"
+    #expect(Preferences(defaults: defaults).quickNote == "Call the dentist 023 9200 0000")
+    #expect(WidgetKind.quickNote.title == "Quick note")
+    #expect(WidgetKind.quickNote.sizes == [.small, .medium, .wide])
+}

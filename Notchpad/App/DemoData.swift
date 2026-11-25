@@ -152,6 +152,8 @@ enum DemoData {
         return log
     }
 
+    static let note = "Pick up the parcel from the post office\nBring student ID\nRoom B12 at 3 pm"
+
     static let tailscale = TailscaleStatus(state: .connected, devices: [
         TailscaleDevice(id: "d1", name: "macbook", ipv4: "100.64.0.1", isOnline: true, isSelf: true),
         TailscaleDevice(id: "d2", name: "iphone", ipv4: "100.64.0.2", isOnline: true, isSelf: false),
@@ -191,6 +193,7 @@ enum DemoData {
         inputs.clockRows = ["Europe/London", "Europe/Istanbul", "America/New_York", "Asia/Tokyo"]
             .compactMap { WorldClock.row(zoneID: $0, now: now, local: .current) }
         inputs.focusHistory = "Today 50 min · Week 3 h 20 min"
+        inputs.quickNote = note
         return inputs
     }
 }

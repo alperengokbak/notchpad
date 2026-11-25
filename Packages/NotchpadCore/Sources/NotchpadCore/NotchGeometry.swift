@@ -64,3 +64,51 @@ public struct WingWidths: Equatable, Sendable {
         self.right = right
     }
 }
+
+/// A screen, reduced to what choosing one needs.
+public struct ScreenInfo: Equatable, Sendable {
+    public var frame: CGRect
+    public var isBuiltIn: Bool
+    /// The screen with the menu bar and Dock.
+    public var isMain: Bool
+    public var metrics: ScreenMetrics
+    public var menuBarHeight: CGFloat
+
+    public init(frame: CGRect, isBuiltIn: Bool, isMain: Bool, metrics: ScreenMetrics, menuBarHeight: CGFloat) {
+        self.frame = frame; self.isBuiltIn = isBuiltIn; self.isMain = isMain
+        self.metrics = metrics; self.menuBarHeight = menuBarHeight
+    }
+}
+
+public struct ScreenPick: Equatable, Sendable {
+    public var index: Int
+    public var notch: CGRect
+    /// True when there's no hardware notch there and Notchpad draws its own.
+    public var isVirtual: Bool
+}
+
+extension NotchGeometry {
+    public static let virtualNotchWidth: CGFloat = 185
+
+    /// A drawn notch at the top centre of a screen without one, as tall as the menu bar (at least 24 pt).
+    public static func virtualNotchRect(screen frame: CGRect, menuBarHeight: CGFloat) -> CGRect {
+        let h = max(menuBarHeight, 24)
+        return CGRect(x: frame.midX - virtualNotchWidth / 2, y: frame.maxY - h, width: virtualNotchWidth, height: h)
+    }
+
+    /// The real notch on a notched built-in screen, unless he asked for the main display (or there's no
+    /// notch at all): then a virtual notch on the main screen.
+    public static func pickScreen(_ screens: [ScreenInfo], preferMain: Bool) -> ScreenPick? {
+        guard !screens.isEmpty else { return nil }
+        let notched = screens.indices.first { screens[$0].isBuiltIn && notchRect(screens[$0].metrics) != nil }
+        let main = screens.indices.first { screens[$0].isMain } ?? 0
+        if let n = notched, !(preferMain && main != n), let rect = notchRect(screens[n].metrics) {
+            return ScreenPick(index: n, notch: rect, isVirtual: false)
+        }
+        if let n = notched, main == n, let rect = notchRect(screens[n].metrics) {
+            return ScreenPick(index: n, notch: rect, isVirtual: false)
+        }
+        let s = screens[main]
+        return ScreenPick(index: main, notch: virtualNotchRect(screen: s.frame, menuBarHeight: s.menuBarHeight), isVirtual: true)
+    }
+}

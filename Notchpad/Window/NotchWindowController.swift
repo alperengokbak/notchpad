@@ -17,6 +17,7 @@ final class NotchWindowController {
     private var frontAppBeforeEdit: NSRunningApplication?
     private lazy var gallery = GalleryWindowController(model: model)
     private var galleryWatch: AnyCancellable?
+    private var displayWatch: AnyCancellable?
 
     var onOpen: (() -> Void)?
     var onClose: (() -> Void)?
@@ -36,6 +37,9 @@ final class NotchWindowController {
         model.onTypingChanged = { [weak self] on in self?.setTyping(on) }
         galleryWatch = model.$showGallery.removeDuplicates().sink { [weak self] show in
             DispatchQueue.main.async { self?.setGalleryVisible(show) }
+        }
+        displayWatch = model.$preferMainDisplay.removeDuplicates().dropFirst().sink { [weak self] _ in
+            DispatchQueue.main.async { self?.layout() }
         }
         monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
         monitors.onFileDragMoved = { [weak self] point in self?.fileDragMoved(to: point) }
@@ -58,17 +62,32 @@ final class NotchWindowController {
         }
     }
 
-    private func layout() {
-        guard let screen = Self.builtInScreen(),
-              let notchRect = NotchGeometry.notchRect(ScreenMetrics(
-                  frame: screen.frame,
-                  leftAuxWidth: screen.auxiliaryTopLeftArea?.width,
-                  rightAuxWidth: screen.auxiliaryTopRightArea?.width,
-                  safeTop: screen.safeAreaInsets.top))
-        else {
+    /// Every screen as the core sees it. The first screen in the list is the one with the menu bar.
+    private static func screenInfos() -> [ScreenInfo] {
+        NSScreen.screens.enumerated().map { i, screen in
+            let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+            let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
+            return ScreenInfo(frame: screen.frame, isBuiltIn: id.map { CGDisplayIsBuiltin($0) != 0 } ?? false,
+                              isMain: i == 0,
+                              metrics: ScreenMetrics(frame: screen.frame,
+                                                     leftAuxWidth: screen.auxiliaryTopLeftArea?.width,
+                                                     rightAuxWidth: screen.auxiliaryTopRightArea?.width,
+                                                     safeTop: screen.safeAreaInsets.top),
+                              menuBarHeight: menuBar > 0 ? menuBar : 24)
+        }
+    }
+
+    /// The real notch on a notched MacBook; otherwise (or with "Show on the main display") a drawn notch
+    /// at the top centre of the main screen.
+    func layout() {
+        guard let pick = NotchGeometry.pickScreen(Self.screenInfos(), preferMain: model.preferMainDisplay),
+              NSScreen.screens.indices.contains(pick.index) else {
             panel?.orderOut(nil)
             return
         }
+        let screen = NSScreen.screens[pick.index]
+        let notchRect = pick.notch
+        DebugTools.log("screen: \(pick.isVirtual ? "virtual" : "real") notch \(Int(notchRect.width))x\(Int(notchRect.height))")
         notch = notchRect
         openRect = NotchGeometry.openRect(notch: notchRect, screen: screen.frame)
         model.notchSize = notchRect.size
@@ -93,6 +112,7 @@ final class NotchWindowController {
                     MenuToggle(title: "Shelf: newest files first", isOn: model.shelfNewestFirst) { model.shelfNewestFirst.toggle() },
                     MenuToggle(title: "Open when dragging files to the notch", isOn: model.openOnFileDrag) { model.openOnFileDrag.toggle() },
                     MenuToggle(title: "Add new screenshots to the shelf", isOn: model.screenshotsToShelf) { model.screenshotsToShelf.toggle() },
+                    MenuToggle(title: "Show on the main display", isOn: model.preferMainDisplay) { model.preferMainDisplay.toggle() },
                     model.updateAvailable.map { u in MenuToggle(title: "Update available: Notchpad \(u.version)…", isOn: nil) { model.openUpdatePage() } }
                         ?? MenuToggle(title: "Check for updates…", isOn: nil) { model.runUpdateCheck(manual: true) },
                     MenuToggle(title: "Check for updates automatically", isOn: model.checkForUpdates) { model.checkForUpdates.toggle() },
@@ -116,8 +136,10 @@ final class NotchWindowController {
             clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
                 MainActor.assumeIsolated {
                     guard let self, let panel = self.panel, event.window === panel,
-                          self.model.editingFocusMinutes, !Self.isTextInput(at: event, in: panel) else { return }
-                    DebugTools.log("focus typing: clicked elsewhere")
+                          self.model.editingFocusMinutes || self.model.editingNote,
+                          !Self.isTextInput(at: event, in: panel) else { return }
+                    DebugTools.log("typing: clicked elsewhere")
+                    if self.model.editingNote { self.model.endNoteEditing(); return }
                     // After the click has been handled, so a button's action runs first.
                     DispatchQueue.main.async { panel.makeFirstResponder(nil) }
                 }
@@ -134,6 +156,7 @@ final class NotchWindowController {
                         DebugTools.log("editor: lost focus")
                         self.model.cancelEditor()
                         self.model.endFocusMinutesTyping(nil)
+                        self.model.endNoteEditing()
                     }
                 }
             }
@@ -164,8 +187,9 @@ final class NotchWindowController {
     /// field editor (the text view macOS puts inside a box while you type), not by hit-testing,
     /// because SwiftUI hosts its text fields in views that hit-testing doesn't report.
     private static func isTextInput(at event: NSEvent, in panel: NSPanel) -> Bool {
-        guard let editor = panel.firstResponder as? NSTextView, editor.isFieldEditor else { return false }
-        let box = (editor.delegate as? NSView) ?? editor
+        guard let editor = panel.firstResponder as? NSTextView else { return false }
+        // A one-line box uses the shared field editor; the note is a real text view in a scroll view.
+        let box: NSView = editor.isFieldEditor ? ((editor.delegate as? NSView) ?? editor) : (editor.enclosingScrollView ?? editor)
         let frame = box.convert(box.bounds, to: nil).insetBy(dx: -4, dy: -4)
         return frame.contains(event.locationInWindow)
     }
