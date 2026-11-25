@@ -8,6 +8,11 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
+## What's new in 1.6
+
+- **Volume bar.** The Music widget has a volume bar for the Mac's own sound, so it works with any app that plays audio. Drag it and the sound changes as you drag. Click the speaker to mute. In the Medium size it sits under the song title, and in the Small size it stands upright on the right.
+- **Right-click a widget for its actions.** Each widget now has its own menu: add the song to an Apple Music playlist or to your library, favourite it or copy its link; open, copy or AirDrop the files on the shelf; join the next meeting from its Zoom, Teams or Meet link; save the quick note to Apple Notes; pause the clipboard history; flip the Mirror image. The full list is under "Right-click a widget" below.
+
 ## What's new in 1.5.3
 
 - **Security.** Notchpad now runs with Apple's Hardened Runtime, so other programs can't slip their own code into it and use its camera, calendar or reminders access. Test-only launch options are gone from the downloadable app, the update check only opens Notchpad's own release pages, and the clipboard history skips copies made in password managers.
@@ -68,7 +73,7 @@ Each of the last three has an on/off switch in the settings menu (the gear, or r
 
 ## Download
 
-1. Download **Notchpad-1.5.3.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.6.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
