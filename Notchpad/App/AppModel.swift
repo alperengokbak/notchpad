@@ -1344,6 +1344,7 @@ extension AppModel {
             music = .playing(DemoData.song(now: now))
             artwork = DemoData.cover()
         }
+        if let v = DebugTools.argument(after: "--demo-volume").flatMap(Double.init) { volume = VolumeLevel(volume: v, muted: false) }
         focus = DebugTools.flag("--focus-idle") ? FocusTimer() : DemoData.focus(now: now)
         launcher.setForDemo(DemoData.launcherItems())
         if !DebugTools.flag("--watch-clipboard") { clipboard.setForDemo(DemoData.clips(now: now)) }

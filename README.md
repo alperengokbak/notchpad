@@ -6,7 +6,7 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 ![Notchpad launch video](docs/notchpad-launch.gif)
 
-The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
+The video shows version 1.6: turning the volume up from the Music widget, right-clicking a song to add it to a playlist, and a second tab with the Clipboard, Mirror, Quick note and World clock widgets. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
 ## Install
 
