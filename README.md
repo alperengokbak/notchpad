@@ -8,6 +8,14 @@ Notchpad turns the notch on a MacBook into a small panel. Move the mouse onto th
 
 The video shows version 1.1: adding a reminder, jumping around a song with the dot on the progress bar, and typing a focus length. The same video with sound: [notchpad-launch.mp4](docs/notchpad-launch.mp4) (download).
 
+## What's new in 1.4
+
+- **Clipboard widget.** The last 30 things you copied: text, links and pictures. Click one to copy it again. It skips anything a password manager marks as secret, and it only watches the clipboard while the widget is on one of your tabs.
+- **Recent files widget.** The files you opened in the last week. Click to open one, drag it into another app, or show it in Finder.
+- **Update check.** When a newer Notchpad is out, the gear gets a blue dot and the settings menu says "Update available". It checks GitHub once a day, and you can turn that off.
+- **Reorder your shortcuts.** Drag an icon in the Shortcuts widget onto another one to change the order.
+- **Fixes.** The music progress bar no longer jumps to 0:00 when you pause in Apple Music, and "Launch at login" now tells you when macOS needs your approval.
+
 ## What's new in 1.3
 
 - **Mirror widget.** Check how you look before a call. Click the widget and it shows your camera like a mirror; click again, close the panel or switch tabs and the camera turns off. It never turns on by itself.
@@ -34,7 +42,7 @@ Each of the last three has an on/off switch in the settings menu (the gear, or r
 
 ## Download
 
-1. Download **Notchpad-1.3.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.4.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
