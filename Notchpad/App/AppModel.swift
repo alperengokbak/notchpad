@@ -245,6 +245,10 @@ final class AppModel: ObservableObject {
         didSet { typingMaybeChanged() }
     }
     /// Notchpad on the main display instead of the MacBook's notch (settings switch).
+    /// "Show on": the screen he picked (its key); nil = the MacBook notch.
+    @Published var displayChoice: String? {
+        didSet { if !Self.isDemo && displayChoice != oldValue { preferences.displayChoice = displayChoice } }
+    }
     @Published var preferMainDisplay = false {
         didSet { if !Self.isDemo && preferMainDisplay != oldValue { preferences.preferMainDisplay = preferMainDisplay } }
     }
@@ -341,6 +345,7 @@ final class AppModel: ObservableObject {
         checkForUpdates = preferences.checkForUpdates
         updateClipboardWatching()
         preferMainDisplay = preferences.preferMainDisplay
+        if !Self.isDemo { displayChoice = preferences.displayChoice }
         if !Self.isDemo {
             quickNote = preferences.quickNote
             worldClockZones = preferences.worldClockZones

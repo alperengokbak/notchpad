@@ -38,9 +38,11 @@ final class NotchWindowController {
         galleryWatch = model.$showGallery.removeDuplicates().sink { [weak self] show in
             DispatchQueue.main.async { self?.setGalleryVisible(show) }
         }
-        displayWatch = model.$preferMainDisplay.removeDuplicates().dropFirst().sink { [weak self] _ in
-            DispatchQueue.main.async { self?.layout() }
-        }
+        displayWatch = model.$preferMainDisplay.removeDuplicates().dropFirst().map { _ in () }
+            .merge(with: model.$displayChoice.removeDuplicates().dropFirst().map { _ in () })
+            .sink { [weak self] in
+                DispatchQueue.main.async { self?.layout() }
+            }
         monitors.onMouseMoved = { [weak self] point in self?.mouseMoved(to: point) }
         monitors.onFileDragMoved = { [weak self] point in self?.fileDragMoved(to: point) }
         monitors.onScroll = { [weak self] event in self?.scrolled(event) }
@@ -63,24 +65,48 @@ final class NotchWindowController {
     }
 
     /// Every screen as the core sees it. The first screen in the list is the one with the menu bar.
-    private static func screenInfos() -> [ScreenInfo] {
+    static func screenInfos() -> [ScreenInfo] {
         NSScreen.screens.enumerated().map { i, screen in
             let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
             let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
+            // Vendor, model and serial stay the same when the monitor is plugged in again.
+            let key = id.map { "\(CGDisplayVendorNumber($0))-\(CGDisplayModelNumber($0))-\(CGDisplaySerialNumber($0))" } ?? ""
             return ScreenInfo(frame: screen.frame, isBuiltIn: id.map { CGDisplayIsBuiltin($0) != 0 } ?? false,
                               isMain: i == 0,
                               metrics: ScreenMetrics(frame: screen.frame,
                                                      leftAuxWidth: screen.auxiliaryTopLeftArea?.width,
                                                      rightAuxWidth: screen.auxiliaryTopRightArea?.width,
                                                      safeTop: screen.safeAreaInsets.top),
-                              menuBarHeight: menuBar > 0 ? menuBar : 24)
+                              menuBarHeight: menuBar > 0 ? menuBar : 24,
+                              key: key, name: screen.localizedName)
         }
+    }
+
+    /// "Show on ▸": one item per screen, the one in use ticked. Only with more than one screen.
+    private static func displayMenuItem(model: AppModel) -> NSMenuItem? {
+        let screens = screenInfos()
+        guard screens.count > 1 else { return nil }
+        let current = NotchGeometry.pickScreen(screens, chosen: model.displayChoice, preferMain: model.preferMainDisplay)?.index
+        let item = NSMenuItem(title: "Show on", action: nil, keyEquivalent: "")
+        let sub = NSMenu()
+        for (i, screen) in screens.enumerated() {
+            let choice = ClosureMenuItem(screen.menuTitle) { [weak model] in
+                guard let model else { return }
+                model.preferMainDisplay = false
+                model.displayChoice = screen.hasNotch ? nil : screen.key
+                DebugTools.log("show on: \(screen.menuTitle)")
+            }
+            choice.state = i == current ? .on : .off
+            sub.addItem(choice)
+        }
+        item.submenu = sub
+        return item
     }
 
     /// The real notch on a notched MacBook; otherwise (or with "Show on the main display") a drawn notch
     /// at the top centre of the main screen.
     func layout() {
-        guard let pick = NotchGeometry.pickScreen(Self.screenInfos(), preferMain: model.preferMainDisplay),
+        guard let pick = NotchGeometry.pickScreen(Self.screenInfos(), chosen: model.displayChoice, preferMain: model.preferMainDisplay),
               NSScreen.screens.indices.contains(pick.index) else {
             panel?.orderOut(nil)
             return
@@ -112,12 +138,15 @@ final class NotchWindowController {
                     MenuToggle(title: "Shelf: newest files first", isOn: model.shelfNewestFirst) { model.shelfNewestFirst.toggle() },
                     MenuToggle(title: "Open when dragging files to the notch", isOn: model.openOnFileDrag) { model.openOnFileDrag.toggle() },
                     MenuToggle(title: "Add new screenshots to the shelf", isOn: model.screenshotsToShelf) { model.screenshotsToShelf.toggle() },
-                    MenuToggle(title: "Show on the main display", isOn: model.preferMainDisplay) { model.preferMainDisplay.toggle() },
                     model.updateAvailable.map { u in MenuToggle(title: "Update available: Notchpad \(u.version)…", isOn: nil) { model.openUpdatePage() } }
                         ?? MenuToggle(title: "Check for updates…", isOn: nil) { model.runUpdateCheck(manual: true) },
                     MenuToggle(title: "Check for updates automatically", isOn: model.checkForUpdates) { model.checkForUpdates.toggle() },
                     MenuToggle(title: "Reset tabs and widgets…", isOn: nil) { model.resetLayout() },
                 ]
+            }
+            host.extraItems = { [weak model] in
+                guard let model else { return [] }
+                return [Self.displayMenuItem(model: model)].compactMap { $0 }
             }
             host.widgetSection = { [weak model] point in
                 guard let model, let kind = model.widgetKind(atPanelPoint: point) else { return nil }
@@ -324,6 +353,8 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     var toggles: () -> [MenuToggle] = { [] }
     /// The right-clicked widget's own actions (point = top-left origin in the panel). Nil = none there.
     var widgetSection: (CGPoint) -> WidgetMenuSection? = { _ in nil }
+    /// Items after the switches ("Show on ▸").
+    var extraItems: () -> [NSMenuItem] = { [] }
 
     override func rightMouseDown(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
@@ -344,7 +375,7 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
                        micShown: micShown(), onToggleMic: onToggleMic,
                        closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic,
                        hasBackground: hasBackground(), onChooseBackground: onChooseBackground,
-                       onRemoveBackground: onRemoveBackground, toggles: toggles())
+                       onRemoveBackground: onRemoveBackground, toggles: toggles(), extraItems: extraItems())
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }

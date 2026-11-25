@@ -122,6 +122,29 @@ private let external = ScreenInfo(frame: CGRect(x: 1728, y: 0, width: 2560, heig
     #expect(NotchGeometry.pickScreen([], preferMain: false) == nil)
 }
 
+@Test func chosenMonitorGetsTheNotchWhileConnected() {
+    // His setup: MacBook is the main display, the monitor sits beside it without a menu bar.
+    var monitor = external; monitor.key = "4c2d-7148-1"; monitor.name = "Studio Display 27"; monitor.menuBarHeight = 24
+    var laptop = mbp; laptop.key = "610-a050-0"
+    let pick = NotchGeometry.pickScreen([laptop, monitor], chosen: "4c2d-7148-1", preferMain: false)
+    #expect(pick?.index == 1)
+    #expect(pick?.isVirtual == true)
+    #expect(pick?.notch == CGRect(x: 1728 + 2560 / 2 - 92.5, y: 1440 - 24, width: 185, height: 24))
+    // Choosing the MacBook gives the real notch.
+    #expect(NotchGeometry.pickScreen([laptop, monitor], chosen: "610-a050-0", preferMain: false)?.isVirtual == false)
+    // Monitor unplugged: back to the notch.
+    #expect(NotchGeometry.pickScreen([laptop], chosen: "4c2d-7148-1", preferMain: false)?.index == 0)
+    #expect(NotchGeometry.pickScreen([laptop, monitor], chosen: nil, preferMain: false)?.index == 0)
+}
+
+@Test func screenMenuTitles() {
+    var monitor = external; monitor.name = "Studio Display 27"
+    #expect(mbp.menuTitle == "MacBook notch")
+    #expect(monitor.menuTitle == "Studio Display 27")
+    monitor.name = ""
+    #expect(monitor.menuTitle == "Display")
+}
+
 // MARK: Quick note
 
 @Test func quickNotePreferenceAndCatalog() {

@@ -65,6 +65,7 @@ public struct Preferences {
     private static let quickNoteKey = "quickNote"
     private static let mainDisplayKey = "preferMainDisplay"
     private static let mirrorFlippedKey = "mirrorFlipped"
+    private static let displayChoiceKey = "displayChoice"
     private static let clipboardPausedKey = "clipboardPaused"
 
     public init(defaults: UserDefaults = .standard) {
@@ -148,6 +149,12 @@ public struct Preferences {
     }
 
     /// Put Notchpad on the main display (an external monitor) instead of the MacBook's notch. Off unless turned on.
+    /// "Show on": the key of the screen Notchpad should use; nil = the MacBook notch (or the main screen).
+    public var displayChoice: String? {
+        get { defaults.string(forKey: Self.displayChoiceKey) }
+        nonmutating set { defaults.set(newValue, forKey: Self.displayChoiceKey) }
+    }
+
     /// Mirror widget shows the camera unmirrored (as others see you). Off unless turned on.
     public var mirrorFlipped: Bool {
         get { defaults.bool(forKey: Self.mirrorFlippedKey) }

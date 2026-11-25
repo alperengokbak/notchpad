@@ -16,7 +16,7 @@ enum PanelMenu {
                      closedMusicShown: Bool, onToggleClosedMusic: @escaping () -> Void,
                      hasBackground: Bool = false, onChooseBackground: @escaping () -> Void = {},
                      onRemoveBackground: @escaping () -> Void = {},
-                     toggles: [MenuToggle] = []) -> NSMenu {
+                     toggles: [MenuToggle] = [], extraItems: [NSMenuItem] = []) -> NSMenu {
         let menu = NSMenu()
         if let widget {
             menu.addItem(.sectionHeader(title: widget.title))
@@ -58,6 +58,7 @@ enum PanelMenu {
             item.state = t.isOn == true ? .on : .off
             menu.addItem(item)
         }
+        extraItems.forEach(menu.addItem)
         menu.addItem(.separator())
         let chooseBG = NSMenuItem(title: hasBackground ? "Change background image…" : "Choose background image…",
                                   action: #selector(MenuTarget.chooseBackground), keyEquivalent: "")
