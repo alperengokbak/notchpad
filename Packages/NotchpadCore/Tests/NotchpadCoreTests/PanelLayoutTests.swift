@@ -232,3 +232,29 @@ extension PanelLayout {
     #expect(l.tabs[0].widgets.contains { $0.id == focus.id })                        // nothing lost
     #expect(l.moveWidget(focus.id, fromTab: home, toTab: home) == .alreadyOnTab)
 }
+
+// MARK: Adding when the tab is full
+
+@Test func fullTabPutsTheWidgetOnANewTab() {
+    var l = PanelLayout.makeDefault() // Home is full
+    let home = l.tabs[0].id
+    let result = l.addWidgetOrNewTab(.mirror, size: .medium, preferring: home)
+    guard case .addedToNewTab(let tab) = result else { Issue.record("expected a new tab, got \(result)"); return }
+    #expect(l.tabs.count == 2)
+    #expect(l.selectedTabID == tab)
+    #expect(l.tab(tab)?.widgets.map(\.kind) == [.mirror])
+    #expect(l.tabs[0].widgets.count == 5) // Home unchanged
+}
+
+@Test func roomOnTheTabAddsThereAndRefusalsExplain() {
+    var l = PanelLayout.threeTabs()
+    let remindersTab = l.tabs[1].id
+    l.removeWidget(l.tabs[1].widgets[0].id, fromTab: remindersTab)
+    #expect(l.addWidgetOrNewTab(.mirror, size: .small, preferring: remindersTab) == .added(remindersTab))
+    #expect(l.addWidgetOrNewTab(.mirror, size: .small, preferring: remindersTab) == .refused(.alreadyOnTab))
+    // Four full tabs: nowhere to go.
+    var full = PanelLayout.makeDefault()
+    for _ in 0..<3 { _ = full.addWidgetOrNewTab(.tailscale, size: .full, preferring: full.tabs[0].id) }
+    #expect(full.tabs.count == 4)
+    #expect(full.addWidgetOrNewTab(.clipboard, size: .full, preferring: full.tabs[0].id) == .refused(.noRoom))
+}

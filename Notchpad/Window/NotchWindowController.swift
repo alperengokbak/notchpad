@@ -116,6 +116,7 @@ final class NotchWindowController {
                     model.updateAvailable.map { u in MenuToggle(title: "Update available: Notchpad \(u.version)…", isOn: nil) { model.openUpdatePage() } }
                         ?? MenuToggle(title: "Check for updates…", isOn: nil) { model.runUpdateCheck(manual: true) },
                     MenuToggle(title: "Check for updates automatically", isOn: model.checkForUpdates) { model.checkForUpdates.toggle() },
+                    MenuToggle(title: "Reset tabs and widgets…", isOn: nil) { model.resetLayout() },
                 ]
             }
             host.onEditWidgets = { [weak model] in

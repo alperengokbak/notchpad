@@ -8,6 +8,8 @@ struct GalleryView: View {
     @State private var query = ""
     @State private var category: WidgetCategory?
     @State private var hovered: String?
+    /// What the last click did (shown in the footer for a few seconds).
+    @State private var message: (text: String, ok: Bool)?
 
     private static let previewScale: CGFloat = 0.5
     private static let area = CGSize(width: 636, height: 146)
@@ -107,6 +109,9 @@ struct GalleryView: View {
 
     private func tile(_ kind: WidgetKind, _ size: WidgetSize, inputs: WidgetInputs) -> some View {
         let check = model.layout.canAdd(kind, size: size, toTab: model.selectedTabID)
+        // A full tab is no dead end: the click puts the widget on a new tab (while there's room for one).
+        let clickable = check == .ok || (check == .noRoom && model.layout.tabs.count < PanelLayout.maxTabs)
+        let tabName = model.layout.selectedTab.name
         let real = WidgetGrid.frame(size: size, column: 0, half: size == .small ? .top : .full, in: Self.area, gap: 10).size
         let shown = CGSize(width: real.width * Self.previewScale, height: real.height * Self.previewScale)
         let key = "\(kind.rawValue)-\(size.rawValue)"
@@ -119,25 +124,43 @@ struct GalleryView: View {
                 .padding(8)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color.black))
                 .overlay(RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(hovered == key && check == .ok ? Color.white : Color(white: 0.2), lineWidth: 1))
+                    .strokeBorder(hovered == key && clickable ? Color.white : Color(white: 0.2), lineWidth: 1))
             Text(size.title).font(.system(size: 10)).foregroundStyle(Color(white: 0.55))
         }
-        .opacity(check == .ok ? 1 : 0.35)
+        .opacity(check == .ok ? 1 : (clickable ? 0.7 : 0.35))
         .contentShape(Rectangle())
         .onHover { hovered = $0 ? key : (hovered == key ? nil : hovered) }
-        .onTapGesture {
-            guard check == .ok else { return }
-            if model.layout.addWidget(kind, size: size, toTab: model.selectedTabID) {
-                DebugTools.log("added: \(kind.rawValue) \(size.rawValue)")
-            }
+        .onTapGesture { add(kind, size, from: tabName) }
+        .help(check == .ok ? "Add \(kind.title) (\(size.title)) to \(tabName)"
+              : (clickable ? "\(tabName) is full: click to put \(kind.title) on a new tab" : (check.reason ?? "")))
+    }
+
+    private func add(_ kind: WidgetKind, _ size: WidgetSize, from tabName: String) {
+        let result = model.layout.addWidgetOrNewTab(kind, size: size, preferring: model.selectedTabID)
+        let text: String
+        let ok: Bool
+        switch result {
+        case .added(let id):
+            text = "Added \(kind.title) to \(model.layout.tab(id)?.name ?? tabName)"; ok = true
+        case .addedToNewTab(let id):
+            text = "\(tabName) is full, so \(kind.title) went on a new tab: \(model.layout.tab(id)?.name ?? "")"; ok = true
+        case .refused(.alreadyOnTab):
+            text = "\(kind.title) is already on \(tabName)"; ok = false
+        case .refused:
+            text = "No room: \(tabName) is full and you already have \(PanelLayout.maxTabs) tabs. Remove a widget first."; ok = false
         }
-        .help(check.reason ?? "Add \(kind.title) (\(size.title)) to \(model.layout.selectedTab.name)")
+        DebugTools.log("gallery: \(text)")
+        message = (text, ok)
+        let shown = text
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { if message?.text == shown { message = nil } }
     }
 
     private var footer: some View {
         HStack {
-            Text("Click a widget to add it to \(model.layout.selectedTab.name)")
-                .font(.system(size: 11)).foregroundStyle(Color(white: 0.55))
+            Text(message?.text ?? "Click a widget to add it to \(model.layout.selectedTab.name)")
+                .font(.system(size: 11, weight: message == nil ? .regular : .semibold))
+                .foregroundStyle(message == nil ? Color(white: 0.55) : (message!.ok ? Color.green : Color.orange))
+                .lineLimit(2)
             Spacer()
             Button { model.showGallery = false } label: {
                 Text("Done").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)

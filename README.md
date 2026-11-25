@@ -95,7 +95,7 @@ Each part of the panel is a widget, and you choose which widgets go on which tab
 - remove a widget with its minus button, or change its size with the arrows button (Small, Medium, Wide or Full, depending on the widget)
 - drag a widget to an empty spot, or onto another widget to swap the two
 - drag a widget onto another tab's name to move it to that tab; the panel then shows that tab (red means that tab already has the widget or has no room)
-- click "Add widget" to open the gallery, search or pick a category, and click a widget to add it to the tab you're on
+- click "Add widget" to open the gallery, search or pick a category, and click a widget to add it to the tab you're on (if that tab is full, it goes on a new tab)
 - add a tab with +, click the selected tab to rename it, drag tabs to change their order, or delete a tab with its minus button
 
 | Widget | Sizes |
@@ -119,7 +119,7 @@ Click Done when you're finished. You can have up to four tabs, and the same widg
 
 When there's no more room left of the notch, the next tabs go to the right of it. Your layout is saved in `~/Library/Application Support/Notchpad/layout.json`. If that file gets damaged, Notchpad starts with the default layout and keeps the damaged file next to it as `layout-broken-<date>.json`.
 
-Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Choose background image…", "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
+Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Choose background image…", "Reset tabs and widgets…" (back to the single Home tab of a first launch; your shelf, notes and settings stay), "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
 
 The same menu has switches for: **swiping on the notch to change songs** (two fingers left for the next song, right for the previous one, with the pointer over the notch, open or closed), **showing charging on the closed notch** (a green bolt and your battery level for a few seconds when you plug in the charger), **showing the newest shelf files first**, **opening the panel when you drag files to the notch**, **adding new screenshots to the shelf** (off at first; when it's on, every screenshot you take waits on the shelf, ready to drag into an email or a document), and **showing Notchpad on the main display** (for an external monitor; on a MacBook it otherwise stays in the notch).
 

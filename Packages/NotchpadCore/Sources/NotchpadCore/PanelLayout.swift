@@ -132,6 +132,27 @@ public struct PanelLayout: Codable, Equatable, Sendable {
         return .ok
     }
 
+    public enum AddResult: Equatable, Sendable {
+        case added(UUID)
+        /// The tab was full, so a new tab was made for it (and selected).
+        case addedToNewTab(UUID)
+        case refused(AddCheck)
+    }
+
+    /// Gallery click: add to the tab on screen; if it's full, put the widget on a new tab (up to `maxTabs`).
+    public mutating func addWidgetOrNewTab(_ kind: WidgetKind, size: WidgetSize, preferring id: UUID) -> AddResult {
+        switch canAdd(kind, size: size, toTab: id) {
+        case .ok:
+            return addWidget(kind, size: size, toTab: id) ? .added(id) : .refused(.noRoom)
+        case .alreadyOnTab:
+            return .refused(.alreadyOnTab)
+        case .noRoom:
+            guard kind.sizes.contains(size), let newTab = addTab() else { return .refused(.noRoom) }
+            guard addWidget(kind, size: size, toTab: newTab) else { _ = deleteTab(newTab); selectedTabID = id; return .refused(.noRoom) }
+            return .addedToNewTab(newTab)
+        }
+    }
+
     public mutating func removeWidget(_ widgetID: UUID, fromTab id: UUID) {
         guard let i = index(of: id) else { return }
         tabs[i].widgets.removeAll { $0.id == widgetID }

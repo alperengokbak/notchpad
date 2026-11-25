@@ -784,6 +784,23 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Reset
+
+    /// Settings menu: back to the first-launch layout (one Home tab). Asks first. Shelf, notes,
+    /// clipboard, shortcuts and settings are kept.
+    func resetLayout() {
+        let alert = NSAlert()
+        alert.messageText = "Reset tabs and widgets?"
+        alert.informativeText = "This replaces all your tabs with a single Home tab, as on first launch. Your shelf, notes, clipboard, shortcuts and settings stay."
+        alert.addButton(withTitle: "Reset")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        if isEditing { endEditing() }
+        layout = .makeDefault()
+        DebugTools.log("layout reset")
+    }
+
     // MARK: Quick note
 
     func beginNoteEditing() {
