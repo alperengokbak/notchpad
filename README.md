@@ -135,6 +135,26 @@ When there's no more room left of the notch, the next tabs go to the right of it
 
 Click the gear at the top right of the open panel, or right-click anywhere on it, for "Edit widgets…", "Choose background image…", "Reset tabs and widgets…" (back to the single Home tab of a first launch; your shelf, notes and settings stay), "Show music on closed notch", "Launch at login" and "Quit Notchpad". There's no Dock icon and no menu bar icon.
 
+**Right-click a widget** for its own actions. They sit at the top of the menu, with the usual items under them:
+
+| Widget | Right-click actions |
+|---|---|
+| Music (Apple Music) | Add to playlist (your own playlists), Add to library, Favourite, Copy song link, Show in Music |
+| Music (Spotify) | Shuffle, Repeat, Copy song link, Open Spotify |
+| Shelf | Open all, Show in Finder, Copy file paths, AirDrop all files, Clear shelf |
+| Reminders | New reminder, Open Reminders |
+| Next event | New event, Join the next meeting (when the event has a Zoom, Teams, Meet or Webex link), Open Calendar |
+| Focus | Start 25 or 50 min, Pause/Resume, Stop, Clear today's focus history |
+| Clipboard | Pause recording (shows PAUSED until you turn it back on), Clear history |
+| Quick note | Copy note, Save to Apple Notes, Clear note |
+| Mirror | Flip image (see yourself the way others do), Turn camera off |
+| Tailscale | Connect/Disconnect, Copy this Mac's IP |
+| World clock | Add city |
+| Shortcuts | Add app, Add shortcut, Add folder |
+| Recent files | Refresh |
+
+A short message at the bottom of the panel confirms things like "Added to Study". Adding a streamed Apple Music song to a playlist adds it to your library first, the same as in the Music app, and takes a few seconds. Spotify doesn't let other apps change playlists, so its menu has no "Add to playlist". Apple Music on current macOS ignores shuffle and repeat set by other apps, so those are in the Spotify menu only. "Save to Apple Notes" makes a new note in your default Notes folder; macOS asks once whether Notchpad may use Notes.
+
 The same menu has switches for: **swiping on the notch to change songs** (two fingers left for the next song, right for the previous one, with the pointer over the notch, open or closed), **showing charging on the closed notch** (a green bolt and your battery level for a few seconds when you plug in the charger), **showing the newest shelf files first**, **opening the panel when you drag files to the notch**, **adding new screenshots to the shelf** (off at first; when it's on, every screenshot you take waits on the shelf, ready to drag into an email or a document), and **showing Notchpad on the main display** (for an external monitor; on a MacBook it otherwise stays in the notch).
 
 **Background image:** pick any picture (JPEG, PNG, HEIC…) with "Choose background image…". It fills the open panel, cropped evenly to its wide shape (never stretched), and is darkened so the text stays readable. It never covers or blocks a button, and the closed notch stays black. Notchpad keeps its own smaller copy, so you can move or delete the original. "Remove background image" goes back to plain black.
@@ -169,10 +189,11 @@ Notchpad then asks for these permissions, each once:
 - **Calendar:** to show your next event, and to add, change or delete events when you ask it to. Nothing leaves your Mac.
 - **Reminders:** to show your reminders, tick them off, and add, change or delete them when you ask it to.
 - **Automation for Music or Spotify:** to show the current song and to use the play, next and previous buttons and the progress bar. macOS asks once for each app.
+- **Automation for Notes:** only if you use "Save to Apple Notes" on the Quick note. macOS asks the first time.
 - **Notifications:** for the "Focus done" message. The sound plays either way.
 - **Camera:** only when you click the Mirror widget.
 
-**Internet:** once a day Notchpad asks GitHub whether a newer version exists (it sends nothing about you). If there is one, the gear gets a blue dot and the settings menu shows "Update available". Turn this off with "Check for updates automatically" in the settings menu; "Check for updates…" still works by hand. Nothing else goes online.
+**Internet:** once a day Notchpad asks GitHub whether a newer version exists (it sends nothing about you). If there is one, the gear gets a blue dot and the settings menu shows "Update available". Turn this off with "Check for updates automatically" in the settings menu; "Check for updates…" still works by hand. "Copy song link" for an Apple Music song asks Apple's public song search for the song's page (it sends only the title and artist), and "Join" opens the meeting link from your event. Nothing else goes online.
 
 If you say no to Calendar, the Next section says "Calendar off". If you say no to Reminders, the panel says "Reminders access is off" with a button that opens the right page in System Settings.
 

@@ -29,7 +29,8 @@ enum DemoData {
         func at(_ hour: Int) -> Date { cal.date(bySettingHour: hour, minute: 0, second: 0, of: today)! }
         return [
             EventSummary(id: "demo-1", title: "Networking lecture", start: at(15), end: at(17),
-                         isAllDay: false, red: 0.04, green: 0.52, blue: 1, calendarID: "University"),
+                         isAllDay: false, red: 0.04, green: 0.52, blue: 1, calendarID: "University",
+                         meetingURL: URL(string: "https://zoom.us/j/1234567890")),
             EventSummary(id: "demo-2", title: "Gym", start: at(18), end: at(19),
                          isAllDay: false, red: 0.2, green: 0.78, blue: 0.35, calendarID: "Home"),
             EventSummary(id: "demo-3", title: "Call home", start: at(21), end: at(22),

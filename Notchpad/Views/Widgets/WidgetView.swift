@@ -50,9 +50,9 @@ struct WidgetView: View {
         case (.launcher, _):
             LauncherView(inputs: inputs, size: size)
         case (.mirror, _):
-            MirrorView(camera: inputs.camera, demoImage: inputs.mirrorDemoImage)
+            MirrorView(camera: inputs.camera, demoImage: inputs.mirrorDemoImage, flipped: inputs.mirrorFlipped)
         case (.clipboard, _):
-            ClipboardView(monitor: inputs.clipboard, now: inputs.now)
+            ClipboardView(monitor: inputs.clipboard, now: inputs.now, paused: inputs.clipboardPaused)
         case (.quickNote, _):
             QuickNoteView(inputs: inputs)
         case (.worldClock, _):

@@ -76,6 +76,8 @@ struct WidgetInputs {
     var camera: CameraMirror = DemoData.previewCamera
     var mirrorDemoImage: NSImage?
     var shelfNewestFirst = false
+    var clipboardPaused = false
+    var mirrorFlipped = false
     var clipboard: ClipboardMonitor = DemoData.previewClipboard
     var recentFiles: [RecentFile] = []
     var clockRows: [ClockRow] = []
@@ -142,6 +144,8 @@ extension AppModel {
                             shelf: shelf, shelfDropTargeted: dropTargeted, actions: actions)
         inputs.editingFocusMinutes = editingFocusMinutes
         inputs.volume = volume
+        inputs.clipboardPaused = clipboardPaused
+        inputs.mirrorFlipped = mirrorFlipped
         inputs.launcherItems = launcher.items
         inputs.shortcutNames = shortcutNames
         inputs.copiedLauncherID = copiedLauncherID

@@ -221,6 +221,20 @@ final class AppModel: ObservableObject {
     private let screenshotWatcher = ScreenshotWatcher()
     /// Focus minutes per day (Focus widget: "Today … · Week …").
     @Published private(set) var focusLog = FocusLog()
+    /// Right-click menus: the Music menu's playlists and ticks, and the short message at the bottom of the panel.
+    @Published var musicMenu = MusicMenuState()
+    @Published var toast: String?
+    /// Mirror widget: show the camera the way others see you instead of mirrored.
+    @Published var mirrorFlipped = false {
+        didSet { if !Self.isDemo { preferences.mirrorFlipped = mirrorFlipped } }
+    }
+    /// Clipboard widget: stop saving new copies until turned back on.
+    @Published var clipboardPaused = false {
+        didSet {
+            if !Self.isDemo { preferences.clipboardPaused = clipboardPaused }
+            updateClipboardWatching()
+        }
+    }
     private var focusPlannedSeconds: TimeInterval = 0
 
     /// Quick note widget: the text (saved as he types) and whether it's being edited.
@@ -261,12 +275,12 @@ final class AppModel: ObservableObject {
 
     let calendarReader = CalendarReader()
     lazy var remindersReader = RemindersReader(store: calendarReader.store)
-    private let musicQueue = DispatchQueue(label: "notchpad.music")
+    let musicQueue = DispatchQueue(label: "notchpad.music")
     private let musicControllers: [MusicSource: MusicController] = Dictionary(uniqueKeysWithValues:
         MusicSource.allCases.map { source in
             (source, MusicController(source: source, isMusicRunning: { AppModel.isRunning(source) }, runner: AppleScriptRunner()))
         })
-    private var musicController: MusicController { musicControllers[musicSource]! }
+    var musicController: MusicController { musicControllers[musicSource]! }
     private var coverCache = CoverCache()
     private let tailscaleQueue = DispatchQueue(label: "notchpad.tailscale")
     private let tailscaleController: TailscaleController = {
@@ -331,6 +345,8 @@ final class AppModel: ObservableObject {
             quickNote = preferences.quickNote
             worldClockZones = preferences.worldClockZones
             focusLog = preferences.focusLog
+            mirrorFlipped = preferences.mirrorFlipped
+            clipboardPaused = preferences.clipboardPaused
             screenshotWatcher.onNew = { [weak self] urls in self?.shelf.add(urls) }
             screenshotsToShelf = preferences.screenshotsToShelf
         }
@@ -415,7 +431,7 @@ final class AppModel: ObservableObject {
                 }
             }
         }
-        if newlyNeeded.contains(.music) { refreshMusic() }
+        if newlyNeeded.contains(.music) { refreshMusic(); refreshMusicMenuState() }
         updateVolumeWatching(needed.contains(.music))
         if newlyNeeded.contains(.recentFiles) { refreshRecentFiles() }
         updateTailscaleRefresh()
@@ -685,6 +701,8 @@ final class AppModel: ObservableObject {
                 if needsArtwork {
                     self.artwork = data.flatMap(NSImage.init(data:))
                     self.coverCache.stored(for: track?.title)
+                    // A new song: its heart and the playlists may differ.
+                    if self.neededSources.contains(.music) { self.refreshMusicMenuState() }
                 } else if track == nil {
                     self.artwork = nil
                     self.coverCache.stored(for: nil)
@@ -852,6 +870,12 @@ final class AppModel: ObservableObject {
         DebugTools.log("focus recorded: \(minutes) min, today \(focusLog.minutesToday(now: Date(), calendar: .current))")
     }
 
+    func clearTodaysFocus() {
+        focusLog.clearDay(Date(), calendar: .current)
+        if !Self.isDemo { preferences.focusLog = focusLog }
+        DebugTools.log("focus history cleared for today")
+    }
+
     /// "Today 50 min · Week 3 h 20 min".
     var focusHistoryText: String {
         let now = Date()
@@ -924,9 +948,11 @@ final class AppModel: ObservableObject {
     /// The clipboard is watched only while a Clipboard widget is on one of his tabs; never in demo runs.
     func updateClipboardWatching() {
         let allowed = !Self.isDemo || DebugTools.flag("--watch-clipboard") // tests only, never saved
-        let wanted = allowed && layout.tabs.contains { $0.widgets.contains { $0.kind == .clipboard } }
+        let wanted = allowed && !clipboardPaused && layout.tabs.contains { $0.widgets.contains { $0.kind == .clipboard } }
         if wanted { clipboard.start() } else if clipboard.isRunning { clipboard.stop() }
     }
+
+    func refreshRecentFilesNow() { refreshRecentFiles() }
 
     private func refreshRecentFiles() {
         guard !Self.isDemo else { return }
@@ -1306,6 +1332,10 @@ extension AppModel {
         music = .notRunning
         if DebugTools.flag("--demo-spotify") {
             musicSource = .spotify
+            music = .playing(DemoData.song(now: now))
+            artwork = DemoData.cover()
+        } else if DebugTools.flag("--demo-apple-music") {
+            musicSource = .appleMusic
             music = .playing(DemoData.song(now: now))
             artwork = DemoData.cover()
         }

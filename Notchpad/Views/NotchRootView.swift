@@ -70,6 +70,18 @@ struct NotchRootView: View {
                     .frame(width: NotchGeometry.openSize.width, height: NotchGeometry.openSize.height, alignment: .top)
                     .transition(.opacity.animation(.easeOut(duration: 0.15)))
             }
+            if model.isOpen, let toast = model.toast {
+                // Right-click menu results ("Added to Study"), at the bottom of the panel.
+                Text(toast)
+                    .font(.system(size: 11, weight: .semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 5)
+                    .background(Capsule().fill(Color(white: 0.18)))
+                    .overlay(Capsule().strokeBorder(Color(white: 0.3), lineWidth: 0.5))
+                    .shadow(color: .black.opacity(0.6), radius: 8, y: 2)
+                    .frame(width: NotchGeometry.openSize.width, height: NotchGeometry.openSize.height - 6, alignment: .bottom)
+                    .allowsHitTesting(false)
+                    .transition(.opacity.animation(.easeOut(duration: 0.15)))
+            }
         }
         .frame(width: NotchGeometry.openSize.width, height: NotchGeometry.openSize.height, alignment: .top)
         .foregroundStyle(.white)

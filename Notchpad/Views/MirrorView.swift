@@ -6,15 +6,20 @@ struct MirrorView: View {
     @ObservedObject var camera: CameraMirror
     /// Gallery previews and demo screenshots: a drawn placeholder, never the real camera.
     var demoImage: NSImage?
+    /// "Flip image": show yourself the way others see you, not mirrored.
+    var flipped = false
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12).fill(Color(white: 0.1))
             if let demoImage {
-                Image(nsImage: demoImage).resizable().aspectRatio(contentMode: .fill)
+                // In an overlay so the filled picture is cropped to the widget instead of making it bigger.
+                Color.clear.overlay(
+                    Image(nsImage: demoImage).resizable().aspectRatio(contentMode: .fill)
+                        .scaleEffect(x: flipped ? -1 : 1, y: 1))
             } else if camera.state == .running {
                 // A new view for each fresh camera connection.
-                CameraPreview(session: camera.session).id(ObjectIdentifier(camera.session))
+                CameraPreview(session: camera.session, mirrored: !flipped).id(ObjectIdentifier(camera.session))
             } else {
                 placeholder
             }

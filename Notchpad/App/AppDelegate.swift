@@ -20,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if DebugTools.flag("--edit") { model.beginEditing() }
         if let kind = DebugTools.argument(after: "--editor") { model.openEditorForDebug(kind) }
         if let path = DebugTools.argument(after: "--set-background") { model.useBackground(from: URL(fileURLWithPath: path)) }
+        if DebugTools.argument(after: "--menu-dump") != nil || DebugTools.argument(after: "--menu-action") != nil {
+            model.runMenuDebug()
+        }
         if DebugTools.flag("--selftest-volume") {
             Task { await model.runVolumeSelfTest(); NSApp.terminate(nil) }
         }
@@ -40,7 +43,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [model] in model.dropFiles([URL(fileURLWithPath: path)]) }
         }
         if let path = DebugTools.argument(after: "--snapshot") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            let delay = DebugTools.argument(after: "--snapshot-delay").flatMap(Double.init) ?? 1.5
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                 if let view = controller.contentView { DebugTools.snapshot(view, to: path) }
                 NSApp.terminate(nil)
             }

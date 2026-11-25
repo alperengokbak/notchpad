@@ -33,7 +33,8 @@ final class CalendarReader {
                                 start: e.startDate, end: e.endDate, isAllDay: e.isAllDay,
                                 red: Double(rgb[0]), green: Double(rgb[safe: 1] ?? rgb[0]), blue: Double(rgb[safe: 2] ?? rgb[0]),
                                 calendarID: e.calendar.calendarIdentifier,
-                                isEditable: e.calendar.allowsContentModifications)
+                                isEditable: e.calendar.allowsContentModifications,
+                                meetingURL: MeetingLink.find(in: [e.url?.absoluteString, e.location, e.notes]))
         }
     }
 

@@ -6,12 +6,21 @@ import SwiftUI
 struct ClipboardView: View {
     @ObservedObject var monitor: ClipboardMonitor
     let now: Date
+    /// Turned off from the right-click menu: new copies aren't saved.
+    var paused = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("CLIPBOARD").font(.system(size: 10, weight: .medium)).tracking(0.6)
                     .foregroundStyle(Color(white: 0.55))
+                if paused {
+                    Text("PAUSED").font(.system(size: 9, weight: .semibold)).tracking(0.5)
+                        .padding(.horizontal, 5).padding(.vertical, 1)
+                        .background(Capsule().fill(Color.orange.opacity(0.25)))
+                        .foregroundStyle(Color.orange)
+                        .help("New copies aren't saved. Right-click to resume.")
+                }
                 Spacer()
                 if !monitor.history.entries.isEmpty {
                     Button("Clear") { monitor.clear() }.buttonStyle(.plain)

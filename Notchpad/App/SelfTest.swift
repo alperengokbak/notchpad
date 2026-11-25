@@ -1,9 +1,11 @@
+import AppKit
 import EventKit
 import Foundation
 import NotchpadCore
 
 /// Debug-only helpers: `--editor <kind>` opens the editor at launch (use with `--demo` for screenshots),
 /// `--selftest-write` adds, changes and deletes one reminder and one event of its own, then quits.
+/// `--menu-dump <kinds|all>` logs each widget's right-click menu; `--menu-action kind/Item/Subitem` runs one item.
 /// `--selftest-volume` turns the real output volume down a little, mutes, unmutes, then puts it back as it was.
 extension AppModel {
     func openEditorForDebug(_ kind: String) {
@@ -133,5 +135,49 @@ extension AppModel {
         check("restored", abs(restored.volume - original.volume) < 0.02 && restored.muted == original.muted)
         systemVolume.stop()
         DebugTools.log("selftest-volume: \(ok ? "PASS" : "FAIL")")
+    }
+}
+
+extension AppModel {
+    /// Debug: log right-click menus (after the Music state has been read) and optionally run one item.
+    func runMenuDebug() {
+        refreshMusicMenuState()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [self] in
+            if let path = DebugTools.argument(after: "--menu-action") {
+                let parts = path.split(separator: "/").map(String.init)
+                guard let kind = parts.first.flatMap(WidgetKind.init(rawValue:)) else { DebugTools.log("menu action: bad kind"); return }
+                var items = widgetMenuSection(for: kind).items
+                var found: NSMenuItem?
+                for title in parts.dropFirst() {
+                    found = items.first { $0.title == title }
+                    items = found?.submenu?.items ?? []
+                }
+                guard let found, found.isEnabled, let action = found.action else { DebugTools.log("menu action: not found or disabled: \(path)"); return }
+                DebugTools.log("menu action: \(path)")
+                NSApp.sendAction(action, to: found.target, from: found)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+                if let list = DebugTools.argument(after: "--menu-dump") {
+                    let kinds = list == "all" ? WidgetKind.allCases : list.split(separator: ",").compactMap { WidgetKind(rawValue: String($0)) }
+                    for kind in kinds {
+                        let section = widgetMenuSection(for: kind)
+                        DebugTools.log("menu [\(section.title)]")
+                        Self.dump(section.items, depth: 1)
+                    }
+                }
+            }
+        }
+    }
+
+    private static func dump(_ items: [NSMenuItem], depth: Int) {
+        let pad = String(repeating: "  ", count: depth)
+        for item in items.prefix(depth > 1 ? 6 : 50) {
+            if item.isSeparatorItem { DebugTools.log("\(pad)----"); continue }
+            let tick = item.state == .on ? "✓ " : ""
+            let off = item.isEnabled ? "" : " (disabled)"
+            let more = item.submenu.map { " ▸ \($0.items.count)" } ?? ""
+            DebugTools.log("\(pad)\(tick)\(item.title)\(off)\(more)")
+            if let sub = item.submenu { dump(sub.items, depth: depth + 1) }
+        }
     }
 }

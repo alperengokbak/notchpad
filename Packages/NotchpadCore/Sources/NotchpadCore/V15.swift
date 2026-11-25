@@ -77,6 +77,11 @@ public struct FocusLog: Codable, Equatable, Sendable {
         }
     }
 
+    /// "Clear today's focus history" in the Focus widget's menu.
+    public mutating func clearDay(_ date: Date, calendar: Calendar) {
+        days[Self.key(date, calendar)] = nil
+    }
+
     public func minutesToday(now: Date, calendar: Calendar) -> Int {
         days[Self.key(now, calendar)] ?? 0
     }

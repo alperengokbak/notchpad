@@ -115,15 +115,22 @@ final class CameraMirror: ObservableObject {
     }
 }
 
-/// The live picture, flipped like a mirror and cropped to fill the widget.
+/// The live picture, flipped like a mirror (unless "Flip image" is on) and cropped to fill the widget.
 struct CameraPreview: NSViewRepresentable {
     let session: AVCaptureSession
+    var mirrored = true
 
-    func makeNSView(context: Context) -> PreviewView { PreviewView(session: session) }
-    func updateNSView(_ view: PreviewView, context: Context) {}
+    func makeNSView(context: Context) -> PreviewView {
+        let view = PreviewView(session: session)
+        view.mirrored = mirrored
+        return view
+    }
+
+    func updateNSView(_ view: PreviewView, context: Context) { view.mirrored = mirrored }
 
     final class PreviewView: NSView {
         private let preview: AVCaptureVideoPreviewLayer
+        var mirrored = true { didSet { if mirrored != oldValue { fitPreview() } } }
 
         init(session: AVCaptureSession) {
             preview = AVCaptureVideoPreviewLayer(session: session)
@@ -152,9 +159,9 @@ struct CameraPreview: NSViewRepresentable {
             CATransaction.setDisableActions(true)
             preview.frame = bounds
             CATransaction.commit()
-            if let connection = preview.connection, connection.isVideoMirroringSupported, !connection.isVideoMirrored {
+            if let connection = preview.connection, connection.isVideoMirroringSupported, connection.isVideoMirrored != mirrored {
                 connection.automaticallyAdjustsVideoMirroring = false
-                connection.isVideoMirrored = true
+                connection.isVideoMirrored = mirrored
             }
             DebugTools.log("mirror: preview \(Int(bounds.width))x\(Int(bounds.height)), connection \(preview.connection != nil)")
         }

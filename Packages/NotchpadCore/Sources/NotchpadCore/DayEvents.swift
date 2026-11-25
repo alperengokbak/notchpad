@@ -13,12 +13,15 @@ public struct EventSummary: Equatable, Identifiable, Sendable {
     public var calendarID: String
     /// False for calendars that can't be changed (subscriptions, birthdays).
     public var isEditable: Bool
+    /// A Zoom, Teams, Meet… link found in the event, for "Join meeting".
+    public var meetingURL: URL?
 
     public init(id: String, title: String, start: Date, end: Date, isAllDay: Bool,
-                red: Double, green: Double, blue: Double, calendarID: String = "", isEditable: Bool = true) {
+                red: Double, green: Double, blue: Double, calendarID: String = "", isEditable: Bool = true,
+                meetingURL: URL? = nil) {
         self.id = id; self.title = title; self.start = start; self.end = end; self.isAllDay = isAllDay
         self.red = red; self.green = green; self.blue = blue
-        self.calendarID = calendarID; self.isEditable = isEditable
+        self.calendarID = calendarID; self.isEditable = isEditable; self.meetingURL = meetingURL
     }
 }
 

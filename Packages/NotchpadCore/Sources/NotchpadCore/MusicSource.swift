@@ -64,6 +64,8 @@ public struct Preferences {
     private static let focusLogKey = "focusLog"
     private static let quickNoteKey = "quickNote"
     private static let mainDisplayKey = "preferMainDisplay"
+    private static let mirrorFlippedKey = "mirrorFlipped"
+    private static let clipboardPausedKey = "clipboardPaused"
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -146,6 +148,18 @@ public struct Preferences {
     }
 
     /// Put Notchpad on the main display (an external monitor) instead of the MacBook's notch. Off unless turned on.
+    /// Mirror widget shows the camera unmirrored (as others see you). Off unless turned on.
+    public var mirrorFlipped: Bool {
+        get { defaults.bool(forKey: Self.mirrorFlippedKey) }
+        nonmutating set { defaults.set(newValue, forKey: Self.mirrorFlippedKey) }
+    }
+
+    /// Clipboard history stops saving new copies. Off unless turned on.
+    public var clipboardPaused: Bool {
+        get { defaults.bool(forKey: Self.clipboardPausedKey) }
+        nonmutating set { defaults.set(newValue, forKey: Self.clipboardPausedKey) }
+    }
+
     public var preferMainDisplay: Bool {
         get { defaults.object(forKey: Self.mainDisplayKey) as? Bool ?? false }
         nonmutating set { defaults.set(newValue, forKey: Self.mainDisplayKey) }

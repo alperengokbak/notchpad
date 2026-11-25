@@ -119,6 +119,11 @@ final class NotchWindowController {
                     MenuToggle(title: "Reset tabs and widgets…", isOn: nil) { model.resetLayout() },
                 ]
             }
+            host.widgetSection = { [weak model] point in
+                guard let model, let kind = model.widgetKind(atPanelPoint: point) else { return nil }
+                let section = model.widgetMenuSection(for: kind)
+                return WidgetMenuSection(kind: kind, title: section.title, items: section.items)
+            }
             host.onEditWidgets = { [weak model] in
                 guard let model else { return }
                 if model.isEditing { model.endEditing() } else { model.beginEditing() }
@@ -317,9 +322,13 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
     var onChooseBackground: () -> Void = {}
     var onRemoveBackground: () -> Void = {}
     var toggles: () -> [MenuToggle] = { [] }
+    /// The right-clicked widget's own actions (point = top-left origin in the panel). Nil = none there.
+    var widgetSection: (CGPoint) -> WidgetMenuSection? = { _ in nil }
 
     override func rightMouseDown(with event: NSEvent) {
-        NSMenu.popUpContextMenu(makeMenu(), with: event, for: self)
+        let p = convert(event.locationInWindow, from: nil)
+        let point = CGPoint(x: p.x, y: isFlipped ? p.y : bounds.height - p.y)
+        NSMenu.popUpContextMenu(makeMenu(widget: widgetSection(point)), with: event, for: self)
     }
 
     /// The same menu, opened by the settings button: its top-right corner under the button.
@@ -330,8 +339,8 @@ final class PanelHostingView<Content: View>: NSHostingView<Content> {
         menu.popUp(positioning: nil, at: NSPoint(x: x - width, y: y), in: self)
     }
 
-    private func makeMenu() -> NSMenu {
-        PanelMenu.make(shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets,
+    private func makeMenu(widget: WidgetMenuSection? = nil) -> NSMenu {
+        PanelMenu.make(widget: widget, shelf: shelf, editing: isEditing(), onEditWidgets: onEditWidgets,
                        micShown: micShown(), onToggleMic: onToggleMic,
                        closedMusicShown: closedMusicShown(), onToggleClosedMusic: onToggleClosedMusic,
                        hasBackground: hasBackground(), onChooseBackground: onChooseBackground,

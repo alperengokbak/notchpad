@@ -1,23 +1,37 @@
 import AppKit
 import NotchpadCore
 
-/// Right-click menu on the open panel.
+/// The right-clicked widget's part of the menu, shown above the general items.
+struct WidgetMenuSection {
+    let kind: WidgetKind
+    let title: String
+    let items: [NSMenuItem]
+}
+
+/// Right-click menu on the open panel. On a widget, that widget's actions come first.
 @MainActor
 enum PanelMenu {
-    static func make(shelf: ShelfStore?, editing: Bool, onEditWidgets: @escaping () -> Void,
+    static func make(widget: WidgetMenuSection? = nil, shelf: ShelfStore?, editing: Bool, onEditWidgets: @escaping () -> Void,
                      micShown: Bool, onToggleMic: @escaping () -> Void,
                      closedMusicShown: Bool, onToggleClosedMusic: @escaping () -> Void,
                      hasBackground: Bool = false, onChooseBackground: @escaping () -> Void = {},
                      onRemoveBackground: @escaping () -> Void = {},
                      toggles: [MenuToggle] = []) -> NSMenu {
         let menu = NSMenu()
+        if let widget {
+            menu.addItem(.sectionHeader(title: widget.title))
+            widget.items.forEach(menu.addItem)
+            menu.addItem(.separator())
+            menu.addItem(.sectionHeader(title: "Notchpad"))
+        }
         let edit = NSMenuItem(title: editing ? "Done editing" : "Edit widgets…",
                               action: #selector(MenuTarget.editWidgets), keyEquivalent: "")
         edit.target = MenuTarget.shared
         MenuTarget.shared.onEditWidgets = onEditWidgets
         menu.addItem(edit)
         menu.addItem(.separator())
-        if let shelf, !shelf.items.isEmpty {
+        // The Shelf widget's own section already has these.
+        if let shelf, !shelf.items.isEmpty, widget?.kind != .shelf {
             let clear = NSMenuItem(title: "Clear shelf", action: #selector(MenuTarget.clearShelf), keyEquivalent: "")
             clear.target = MenuTarget.shared
             MenuTarget.shared.shelf = shelf
