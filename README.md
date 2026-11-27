@@ -20,7 +20,7 @@ Update later with `brew upgrade --cask notchpad`. The first time you open it, do
 
 Or download the zip:
 
-1. Download **Notchpad-1.6.1.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
+1. Download **Notchpad-1.7.0.zip** from the [latest release](https://github.com/alperengokbak/notchpad/releases/latest).
 2. Double-click the zip, then drag **Notchpad.app** into your Applications folder.
 3. Open it. macOS says it can't check the app, because it isn't notarised by Apple. Go to **System Settings → Privacy & Security**, scroll down and click **"Open Anyway"**. You only do this once.
 
@@ -30,22 +30,19 @@ When you install a newer version, macOS may ask for the permissions again (Calen
 
 If you'd rather build it yourself, see [Build](#build).
 
+## What's new in 1.7
+
+- **Pin files on the shelf.** Hover a file and click the orange pin to keep it on the shelf. A pinned file stays after you drag it into an email or a website's upload box, so a CV or a form you send again and again is always one drag away. Pinned files come first and show a small pin; "Clear shelf" leaves them alone, and "Unpin all" is in the Shelf's right-click menu.
+
 ## What's new in 1.6.1
 
 - **External monitors.** The settings menu has a new "Show on" list. "Screen with the mouse" makes Notchpad follow the pointer between the MacBook notch and your monitor, or you can keep it on one screen. The old "Show on the main display" switch only worked when the monitor was set as the main display in System Settings, so it often did nothing.
 - **New launch video** showing the volume bar, the right-click menus and a second tab of widgets.
 
-## What's new in 1.6
-
-- **Volume bar.** The Music widget has a volume bar for the Mac's own sound, so it works with any app that plays audio. Drag it and the sound changes as you drag. Click the speaker to mute. In the Medium size it sits under the song title, and in the Small size it stands upright on the right.
-- **Right-click a widget for its actions.** Each widget now has its own menu: add the song to an Apple Music playlist or to your library, favourite it or copy its link; open, copy or AirDrop the files on the shelf; join the next meeting from its Zoom, Teams or Meet link; save the quick note to Apple Notes; pause the clipboard history; flip the Mirror image. The full list is under "Right-click a widget" below.
-
-What changed in earlier versions: [CHANGELOG.md](CHANGELOG.md).
-
 ## What's in the panel
 
 - **Music:** the song playing in Apple Music or Spotify, with its cover, a progress bar, and previous, play/pause and next. Drag the white dot on the progress bar, or click anywhere on the bar, to jump to that point in the song. The volume bar sets the Mac's own volume, so it works for any app playing sound. Drag it and the sound changes as you drag. Click the speaker to mute or unmute. In the Medium size the bar sits under the song title; in the Small size it stands upright on the right. If you use both, it shows whichever one is playing. When both are paused it stays on the one you used last. Notchpad never starts either app by itself. If the app is closed, there's an "Open Music" or "Open Spotify" button.
-- **Shelf:** drag files onto the notch and they wait there until you drag them out somewhere else. The shelf keeps a link to the original file (no copies) and is still there after a restart. When you drag a file towards the closed notch, the panel opens by itself. Hover a file and click the blue AirDrop icon to send it to your iPhone or another Mac, or pick "AirDrop all files" from the settings menu (the gear, or right-click). If the tab on screen has no Shelf when you drop a file, the panel switches to a tab that has one.
+- **Shelf:** drag files onto the notch and they wait there until you drag them out somewhere else. The shelf keeps a link to the original file (no copies) and is still there after a restart. When you drag a file towards the closed notch, the panel opens by itself. Hover a file and click the orange pin to keep it there even after you drag it out (handy for a CV), or the blue AirDrop icon to send it to your iPhone or another Mac, or pick "AirDrop all files" from the settings menu (the gear, or right-click). If the tab on screen has no Shelf when you drop a file, the panel switches to a tab that has one.
 - **Reminders:** every reminder from every list, overdue and soonest first and ones without a date at the end. Scroll the list to see them all. Tick the circle to complete one. To delete one without completing it, hover it and click the trash icon, then click Delete. Click the + to add a reminder, or click a reminder to change its title, due date, time or list, or to delete it. In the editor, Return saves and Esc cancels. Click the Reminders heading to jump to a tab with the full list, or to the Reminders app if you don't have one. The Reminders app doesn't need to be open.
 - **Next:** your next event today, from every calendar the Calendar app shows. At Medium size it lists your next three events today instead of one. Click the + to add an event, or click an event to change its title, time or calendar, or to delete it. To delete an event quickly, hover it and click the trash icon, then click Delete. For a repeating event, only that one occurrence changes. Events from calendars you can't change (subscriptions, birthdays) open read-only, with a button to open them in Calendar.
 - **Music on the closed notch:** while a song plays in Apple Music or Spotify, its cover sits left of the closed notch and four small bars move on the right. Pause the song and both disappear. Hover either side to open the panel. If you don't want it, open the settings menu (the gear, or right-click) and untick "Show music on closed notch". Notchpad then fetches nothing extra while the panel is closed.
@@ -97,7 +94,7 @@ Click the gear at the top right of the open panel, or right-click anywhere on it
 |---|---|
 | Music (Apple Music) | Add to playlist (your own playlists), Add to library, Favourite, Copy song link, Show in Music |
 | Music (Spotify) | Shuffle, Repeat, Copy song link, Open Spotify |
-| Shelf | Open all, Show in Finder, Copy file paths, AirDrop all files, Clear shelf |
+| Shelf | Open all, Show in Finder, Copy file paths, AirDrop all files, Clear shelf (keeps pinned files), Unpin all |
 | Reminders | New reminder, Open Reminders |
 | Next event | New event, Join the next meeting (when the event has a Zoom, Teams, Meet or Webex link), Open Calendar |
 | Focus | Start 25 or 50 min, Pause/Resume, Stop, Clear today's focus history |

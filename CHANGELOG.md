@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0
+
+- **Pin files on the shelf.** Hover a file and click the orange pin to keep it on the shelf. A pinned file stays after you drag it into an email or a website's upload box, so a CV or a form you send again and again is always one drag away. Pinned files come first and show a small pin; "Clear shelf" leaves them alone, and "Unpin all" is in the Shelf's right-click menu.
+
 ## 1.6.1
 
 - **External monitors.** The settings menu has a new "Show on" list. "Screen with the mouse" makes Notchpad follow the pointer between the MacBook notch and your monitor, or you can keep it on one screen. The old "Show on the main display" switch only worked when the monitor was set as the main display in System Settings, so it often did nothing.
