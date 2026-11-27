@@ -198,7 +198,10 @@ extension AppModel {
             item("Copy file paths", enabled: has) { $0.copyText(urls.map(\.path).joined(separator: "\n"), toast: "Paths copied") },
             item("AirDrop all files", enabled: has) { _ in AirDrop.send(urls) },
             .separator(),
-            item("Clear shelf", enabled: !shelf.items.isEmpty) { $0.shelf.clear() },
+            item("Clear shelf", enabled: shelf.hasUnpinned) { $0.shelf.clear() },
+            item("Unpin all", enabled: shelf.items.contains(where: \.pinned)) { model in
+                model.shelf.items.filter(\.pinned).forEach { model.shelf.setPinned($0.id, false) }
+            },
         ]
     }
 

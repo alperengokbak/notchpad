@@ -2,10 +2,28 @@ import Combine
 import Foundation
 
 /// A file waiting on the shelf: a bookmark to the original, not a copy.
+/// A pinned file stays on the shelf after it's dragged out (a CV you upload again and again).
 public struct ShelfItem: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID
     public var bookmark: Data
     public var name: String
+    public var pinned: Bool
+
+    public init(id: UUID, bookmark: Data, name: String, pinned: Bool = false) {
+        self.id = id
+        self.bookmark = bookmark
+        self.name = name
+        self.pinned = pinned
+    }
+
+    /// shelf.json from before pinning has no "pinned" key: those files load unpinned.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        bookmark = try c.decode(Data.self, forKey: .bookmark)
+        name = try c.decode(String.self, forKey: .name)
+        pinned = try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
+    }
 }
 
 /// The shelf's files, saved as JSON so they survive a restart.
@@ -46,15 +64,32 @@ public final class ShelfStore: ObservableObject {
         save()
     }
 
-    public func clear() {
-        items.removeAll()
-        resolved.removeAll()
+    /// "Clear shelf" keeps pinned files; `includingPinned` empties everything (demo mode).
+    public func clear(includingPinned: Bool = false) {
+        if includingPinned { items.removeAll() } else { items.removeAll { !$0.pinned } }
+        resolved = resolved.filter { id, _ in items.contains { $0.id == id } }
         save()
     }
 
-    /// Called when a drag out of the shelf ends. Removes the item only if some app took it.
+    /// Whether "Clear shelf" has anything to remove.
+    public var hasUnpinned: Bool { items.contains { !$0.pinned } }
+
+    public func setPinned(_ id: UUID, _ pinned: Bool) {
+        guard let i = items.firstIndex(where: { $0.id == id }), items[i].pinned != pinned else { return }
+        items[i].pinned = pinned
+        save()
+    }
+
+    public func togglePin(_ id: UUID) {
+        guard let item = items.first(where: { $0.id == id }) else { return }
+        setPinned(id, !item.pinned)
+    }
+
+    /// Called when a drag out of the shelf ends. Removes the item only if some app took it
+    /// and it isn't pinned.
     public func dragEnded(_ id: UUID, accepted: Bool) {
-        if accepted { remove(id) }
+        guard accepted, items.first(where: { $0.id == id })?.pinned == false else { return }
+        remove(id)
     }
 
     /// The file's current location, or nil while its disk is disconnected.

@@ -31,7 +31,7 @@ enum PanelMenu {
         menu.addItem(edit)
         menu.addItem(.separator())
         // The Shelf widget's own section already has these.
-        if let shelf, !shelf.items.isEmpty, widget?.kind != .shelf {
+        if let shelf, shelf.hasUnpinned, widget?.kind != .shelf {
             let clear = NSMenuItem(title: "Clear shelf", action: #selector(MenuTarget.clearShelf), keyEquivalent: "")
             clear.target = MenuTarget.shared
             MenuTarget.shared.shelf = shelf

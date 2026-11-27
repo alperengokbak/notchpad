@@ -1367,7 +1367,9 @@ extension AppModel {
         }
         reminderLists = [NamedList(id: "Personal", title: "Personal"), NamedList(id: "Shopping", title: "Shopping")]
         eventCalendars = [NamedList(id: "Home", title: "Home"), NamedList(id: "University", title: "University")]
-        shelf.clear()
+        shelf.clear(includingPinned: true)
         shelf.add(DemoData.files())
+        // Screenshots of pinning: `--demo-pinned` pins the first demo file.
+        if DebugTools.flag("--demo-pinned"), let first = shelf.items.first { shelf.setPinned(first.id, true) }
     }
 }
