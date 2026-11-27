@@ -130,3 +130,51 @@ private struct Sandbox {
     store.add([s.b, s.a])
     #expect(store.availableURLs().map(\.lastPathComponent) == ["b.txt", "a.txt"])
 }
+
+// MARK: Pinned files
+
+@MainActor @Test func pinnedFileStaysAfterAcceptedDrag() throws {
+    let s = try Sandbox()
+    let store = ShelfStore(storageURL: s.storage)
+    store.add([s.a, s.b])
+    let a = store.items[0].id, b = store.items[1].id
+    store.setPinned(a, true)
+    store.dragEnded(a, accepted: true)
+    store.dragEnded(b, accepted: true)
+    #expect(store.items.map(\.name) == ["a.txt"])
+    #expect(store.items[0].pinned)
+}
+
+@MainActor @Test func togglePinFlipsAndPersists() throws {
+    let s = try Sandbox()
+    let store = ShelfStore(storageURL: s.storage)
+    store.add([s.a])
+    let id = store.items[0].id
+    store.togglePin(id)
+    #expect(ShelfStore(storageURL: s.storage).items[0].pinned)
+    store.togglePin(id)
+    #expect(!ShelfStore(storageURL: s.storage).items[0].pinned)
+}
+
+@MainActor @Test func oldShelfJSONWithoutPinnedLoadsUnpinned() throws {
+    let s = try Sandbox()
+    let bookmark = try s.a.bookmarkData().base64EncodedString()
+    let json = #"[{"id":"\#(UUID().uuidString)","bookmark":"\#(bookmark)","name":"a.txt"}]"#
+    try json.write(to: s.storage, atomically: true, encoding: .utf8)
+    let store = ShelfStore(storageURL: s.storage)
+    #expect(store.items.map(\.name) == ["a.txt"])
+    #expect(store.items[0].pinned == false)
+}
+
+@MainActor @Test func clearKeepsPinnedUnlessAskedNotTo() throws {
+    let s = try Sandbox()
+    let store = ShelfStore(storageURL: s.storage)
+    store.add([s.a, s.b])
+    store.setPinned(store.items[1].id, true)
+    #expect(store.hasUnpinned)
+    store.clear()
+    #expect(store.items.map(\.name) == ["b.txt"])
+    #expect(!store.hasUnpinned)
+    store.clear(includingPinned: true)
+    #expect(store.items.isEmpty)
+}

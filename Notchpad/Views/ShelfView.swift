@@ -11,7 +11,7 @@ struct ShelfView: View {
     var asGrid = false
     var iconScale: CGFloat = 1
 
-    private var shown: [ShelfItem] { ShelfOrder.arrange(store.items, newestFirst: newestFirst) }
+    private var shown: [ShelfItem] { ShelfOrder.arrange(shelf: store.items, newestFirst: newestFirst) }
 
     var body: some View {
         ZStack {
@@ -90,6 +90,14 @@ private struct ShelfItemView: View {
                         .buttonStyle(.plain)
                         .help("AirDrop")
                     }
+                    Button { store.togglePin(item.id) } label: {
+                        Image(systemName: item.pinned ? "pin.slash.fill" : "pin.fill").font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 15, height: 15)
+                            .background(Circle().fill(item.pinned ? Color(white: 0.35) : Color.orange))
+                    }
+                    .buttonStyle(.plain)
+                    .help(item.pinned ? "Unpin" : "Keep on shelf after dragging")
                     Button { store.remove(item.id) } label: {
                         Image(systemName: "xmark.circle.fill").font(.system(size: 12))
                             .foregroundStyle(.white, Color(white: 0.35))
@@ -97,6 +105,16 @@ private struct ShelfItemView: View {
                     .buttonStyle(.plain)
                 }
                 .offset(x: 6, y: -4)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if item.pinned && !hovering {
+                Image(systemName: "pin.fill").font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 12, height: 12)
+                    .background(Circle().fill(Color.orange))
+                    .offset(x: -2, y: -3)
+                    .help("Pinned: stays after you drag it out")
             }
         }
         .onHover { hovering = $0 }

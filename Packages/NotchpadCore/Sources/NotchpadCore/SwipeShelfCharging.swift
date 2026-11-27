@@ -54,6 +54,12 @@ public enum ShelfOrder {
     public static func arrange<T>(_ items: [T], newestFirst: Bool) -> [T] {
         newestFirst ? items.reversed() : items
     }
+
+    /// Pinned files first, then the rest; "Newest files first" reorders within each group.
+    public static func arrange(shelf items: [ShelfItem], newestFirst: Bool) -> [ShelfItem] {
+        arrange(items.filter(\.pinned), newestFirst: newestFirst)
+            + arrange(items.filter { !$0.pinned }, newestFirst: newestFirst)
+    }
 }
 
 // MARK: Charging

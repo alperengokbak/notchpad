@@ -87,3 +87,12 @@ private func swipe(_ d: inout SwipeDetector, fingerDX: Double, dy: Double = 0, i
     #expect(WidgetKind.mirror.sizes == [.small, .medium, .wide])
     #expect(WidgetKind.mirror.dataSources.isEmpty) // the camera starts only on a click
 }
+
+@Test func shelfOrderPutsPinnedFirst() {
+    func item(_ n: String, _ pinned: Bool) -> ShelfItem {
+        ShelfItem(id: UUID(), bookmark: Data(), name: n, pinned: pinned)
+    }
+    let items = [item("a", false), item("cv", true), item("b", false), item("letter", true)]
+    #expect(ShelfOrder.arrange(shelf: items, newestFirst: false).map(\.name) == ["cv", "letter", "a", "b"])
+    #expect(ShelfOrder.arrange(shelf: items, newestFirst: true).map(\.name) == ["letter", "cv", "b", "a"])
+}

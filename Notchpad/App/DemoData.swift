@@ -176,8 +176,9 @@ enum DemoData {
     static let previewShelf: ShelfStore = {
         let store = ShelfStore(storageURL: FileManager.default.temporaryDirectory
             .appendingPathComponent("notchpad-preview/shelf.json"))
-        store.clear()
+        store.clear(includingPinned: true)
         store.add(files())
+        if DebugTools.flag("--demo-pinned"), let first = store.items.first { store.setPinned(first.id, true) }
         return store
     }()
 
